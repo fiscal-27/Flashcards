@@ -1,0 +1,3080 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Caixa de Cartões — Verdadeiro ou Falso</title>
+<style>
+  :root{
+    --paper:#F1E8D2;
+    --paper-line:#D8C79E;
+    --ink:#22241F;
+    --ink-soft:#5B5A4C;
+    --ink-faint:#8C8A76;
+    --correct:#3F7A5D;
+    --correct-bg:#E3EEE4;
+    --wrong:#B8433C;
+    --wrong-bg:#F3E2DF;
+    --gold:#B8912E;
+    --bg:#1C1D18;
+    --bg-panel:#26271F;
+    --bg-panel-2:#2E2F26;
+    --border:#3B3C31;
+    --radius:14px;
+    --content-max:640px;
+    --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  @media (min-width:860px){ :root{ --content-max:960px; } }
+  @media (min-width:1280px){ :root{ --content-max:1180px; } }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(184,145,46,0.06), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(184,145,46,0.05), transparent 40%);
+    color:var(--paper);
+    font-family:var(--font-body);
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .app{
+    max-width:var(--content-max);
+    width:100%;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    min-height:100vh;
+    transition:max-width .2s ease;
+  }
+  header.topbar{
+    padding:22px 20px 14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--border);
+  }
+  header.topbar .brand{
+    font-family:var(--font-display);
+    font-size:22px;
+    letter-spacing:0.3px;
+    color:var(--paper);
+  }
+  header.topbar .brand .vf{
+    color:var(--gold);
+    font-style:italic;
+  }
+  header.topbar .subtitle{
+    font-size:11px;
+    color:var(--ink-faint);
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    margin-top:2px;
+  }
+  main{
+    flex:1;
+    padding:20px 18px 100px;
+    position:relative;
+  }
+  @media (min-width:860px){
+    main{ padding:28px 32px 110px; }
+    /* Text-heavy screens stay a comfortable reading width, centered in the
+       wider shell. The deck grid and the study layout are the two places
+       that actually benefit from the extra width, so they opt out below. */
+    #screen-deckDetail, #screen-summary, #screen-history{ max-width:780px; margin:0 auto; }
+    #deckList{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+      gap:12px;
+      align-content:start;
+    }
+    .deck-card{ margin-bottom:0; }
+    .study-layout{ max-width:860px; margin:0 auto; }
+    .study-queue-panel{ width:230px; }
+  }
+  .screen{display:none; animation:fadeIn .25s ease;}
+  .screen.active{display:block;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ---- buttons ---- */
+  button{font-family:inherit; cursor:pointer;}
+  .btn{
+    border:1px solid var(--border);
+    background:var(--bg-panel-2);
+    color:var(--paper);
+    padding:10px 16px;
+    border-radius:9px;
+    font-size:14px;
+    font-weight:600;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    transition:transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .btn:hover{border-color:var(--gold); background:#333427;}
+  .btn:active{transform:scale(0.97);}
+  .btn-gold{background:var(--gold); border-color:var(--gold); color:#1C1D18;}
+  .btn-gold:hover{background:#C9A227;}
+  .btn-ghost{background:transparent;}
+  .btn-danger{border-color:var(--wrong); color:#E8A79F;}
+  .btn-danger:hover{background:rgba(184,67,60,0.15);}
+  .btn-sm{padding:6px 11px; font-size:12.5px; border-radius:7px;}
+  .btn-block{width:100%; justify-content:center;}
+  .btn-row{display:flex; gap:10px; flex-wrap:wrap;}
+
+  /* ---- section headers ---- */
+  .section-title{
+    font-family:var(--font-display);
+    font-size:19px;
+    margin:0 0 4px;
+    color:var(--paper);
+  }
+  .section-sub{
+    font-size:12.5px;
+    color:var(--ink-faint);
+    margin:0 0 16px;
+    line-height:1.5;
+  }
+  .eyebrow{
+    font-size:10.5px;
+    letter-spacing:1.6px;
+    text-transform:uppercase;
+    color:var(--gold);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+
+  /* ---- deck list ---- */
+  .filter-bar{
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:12px;
+    padding:14px; margin-bottom:16px;
+  }
+  .filter-bar #deckSearchInput{ margin-bottom:10px; }
+  .filter-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .filter-row select{ flex:1; font-size:12.5px; padding:9px 10px; }
+  .acc-filter-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .acc-chip{
+    border:1px solid var(--border); background:var(--bg); color:var(--ink-faint);
+    padding:6px 11px; border-radius:20px; font-size:12px; font-weight:600;
+  }
+  .acc-chip:hover{ border-color:var(--gold); }
+  .acc-chip.active{ background:var(--gold); color:#1C1D18; border-color:var(--gold); }
+  .filter-summary{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+    margin-top:10px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .filter-summary a.link-btn{ font-family:var(--font-body); }
+  .deck-card{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-left:4px solid var(--gold);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .deck-card:hover{background:var(--bg-panel-2);}
+  .deck-card .deck-head{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .deck-card .deck-name{
+    font-family:var(--font-display);
+    font-size:17px;
+  }
+  .deck-card .deck-meta{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-top:4px;
+  }
+  .deck-acc-pill{
+    font-family:var(--font-mono);
+    font-size:12px;
+    padding:3px 9px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .pill-good{background:var(--correct-bg); color:var(--correct);}
+  .pill-bad{background:var(--wrong-bg); color:var(--wrong);}
+  .pill-neutral{background:#3B3C31; color:var(--ink-faint);}
+  .deck-badges{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .badge-idle{
+    font-family:var(--font-mono); font-size:10.5px; padding:2px 8px; border-radius:20px;
+    background:rgba(184,145,46,0.15); color:var(--gold); border:1px solid rgba(184,145,46,0.4);
+  }
+  .badge-new{
+    font-family:var(--font-mono); font-size:10.5px; padding:2px 8px; border-radius:20px;
+    background:#3B3C31; color:var(--ink-faint);
+  }
+  .badge-dirty{
+    font-family:var(--font-mono); font-size:10.5px; padding:2px 8px; border-radius:20px;
+    background:var(--wrong-bg); color:var(--wrong);
+  }
+  .dirty-banner{
+    background:rgba(184,67,60,0.12); border:1px solid var(--wrong); border-radius:10px;
+    padding:12px 14px; margin-bottom:14px; font-size:12.5px; line-height:1.5; color:var(--paper);
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px; justify-content:space-between;
+  }
+  #idleFilterChip.active{ background:var(--gold); color:#1C1D18; border-color:var(--gold); }
+
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--ink-faint);
+    border:1px dashed var(--border);
+    border-radius:12px;
+  }
+  .empty-state .hole{
+    width:14px;height:14px;border-radius:50%;
+    background:var(--bg);
+    border:1px solid var(--border);
+    margin:0 auto 14px;
+  }
+
+  /* ---- panels / forms ---- */
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  label{
+    display:block;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--ink-faint);
+    margin:12px 0 6px;
+  }
+  label:first-child{margin-top:0;}
+  input[type=text], textarea, select, input[type=file]{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--paper);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:14.5px;
+    font-family:inherit;
+  }
+  input[type=text]:focus, textarea:focus, select:focus{
+    outline:none; border-color:var(--gold);
+  }
+  textarea{resize:vertical; min-height:60px;}
+  .rte-toolbar{
+    display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+    margin-top:4px; padding:5px; background:var(--bg); border:1px solid var(--border);
+    border-bottom:none; border-radius:8px 8px 0 0;
+  }
+  .rte-btn{
+    background:var(--bg-panel-2); border:1px solid var(--border); color:var(--paper);
+    width:28px; height:28px; border-radius:6px; font-size:13px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .rte-btn:hover{ border-color:var(--gold); }
+  .rte-color-btn{
+    position:relative; overflow:hidden;
+    background:var(--bg-panel-2); border:1px solid var(--border); color:var(--paper);
+    width:28px; height:28px; border-radius:6px; font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .rte-color-btn.rte-highlight-swatch{ color:#fff176; }
+  .rte-color-btn input[type=color]{
+    position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; padding:0; cursor:pointer;
+  }
+  .rte-palette{ display:flex; align-items:center; gap:5px; padding:0 3px; }
+  .rte-swatch{
+    width:20px; height:20px; border-radius:50%; padding:0; cursor:pointer;
+    border:1.5px solid var(--border); box-sizing:border-box;
+  }
+  .rte-swatch:hover{ border-color:var(--paper); transform:scale(1.1); }
+  .rte-swatch-black{ background:#1a1a1a; border-color:#5a5a5a; }
+  .rte-editor{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:0 0 8px 8px;
+    padding:10px 12px;
+    font-size:14.5px;
+    font-family:inherit;
+    color:var(--paper);
+    min-height:70px;
+    line-height:1.5;
+  }
+  .rte-editor:focus{ outline:none; border-color:var(--gold); }
+  .rte-editor:empty:before{
+    content: attr(data-placeholder);
+    color: var(--ink-faint);
+  }
+  .rte-editor ul{ margin:4px 0 4px 20px; padding:0; }
+  .rte-editor b, .rte-editor strong{ font-weight:700; }
+  .rte-editor i, .rte-editor em{ font-style:italic; }
+  .card-question ul, .card-explic ul, .back-answer-text ul, .card-row .q ul{ margin:4px 0 4px 20px; padding:0; text-align:left; }
+  .vf-toggle{display:flex; gap:8px;}
+  .vf-toggle button{
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--ink-faint);
+    font-weight:700;
+    font-size:13.5px;
+  }
+  .vf-toggle button.sel-true.active{background:var(--correct-bg); color:var(--correct); border-color:var(--correct);}
+  .vf-toggle button.sel-false.active{background:var(--wrong-bg); color:var(--wrong); border-color:var(--wrong);}
+  .type-toggle button{ font-size:12px; }
+  .type-toggle button.active{ background:var(--gold); color:#1C1D18; border-color:var(--gold); }
+
+  /* ---- card table ---- */
+  .card-row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:11px 4px;
+    border-bottom:1px solid var(--border);
+    font-size:13.5px;
+  }
+  .card-row:last-child{border-bottom:none;}
+  .card-row .q{flex:1; line-height:1.4;}
+  .card-row .tag{
+    font-family:var(--font-mono);
+    font-size:11px;
+    padding:2px 7px;
+    border-radius:5px;
+    height:fit-content;
+  }
+  .tag-v{background:var(--correct-bg); color:var(--correct);}
+  .tag-f{background:var(--wrong-bg); color:var(--wrong);}
+  .tag-fv{background:var(--bg-panel-2); color:var(--gold); border:1px solid var(--gold);}
+  .tag-fonte{background:var(--bg-panel-2); color:var(--ink-faint); border:1px solid var(--border);}
+  .fv-answer-preview{font-size:11.5px; color:var(--ink-faint); margin-top:3px;}
+  .row-actions{display:flex; gap:6px; align-items:center;}
+  .icon-btn{
+    background:none; border:none; color:var(--ink-faint); font-size:15px; padding:3px 5px;
+  }
+  .icon-btn:hover{color:var(--gold);}
+  .icon-btn.active-fav{ color:var(--gold); }
+
+  /* ---- study screen ---- */
+  .study-topline{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
+  }
+  .progress-track{
+    height:4px; background:var(--border); border-radius:3px; overflow:hidden; margin:8px 0 22px;
+  }
+  .progress-fill{height:100%; background:var(--gold); transition:width .25s ease;}
+  .session-stats{
+    display:flex; gap:14px; font-family:var(--font-mono); font-size:12px; color:var(--ink-faint);
+    align-items:center;
+  }
+  .session-stats .ok{color:var(--correct);}
+  .session-stats .no{color:var(--wrong);}
+  .timer-chip{ color:var(--gold); }
+  .queue-line{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+    text-align:right; margin:-14px 2px 12px;
+  }
+  .repeat-badge{
+    position:absolute; top:14px; right:16px;
+    background:var(--wrong-bg); color:var(--wrong);
+    font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+    padding:3px 9px; border-radius:20px; letter-spacing:0.4px;
+  }
+  .fav-badge{
+    position:absolute; top:13px; left:40px;
+    color:var(--gold); font-size:17px;
+  }
+  .breadcrumb-active{ color:var(--gold); font-weight:700; }
+  .tough-list{
+    text-align:left; background:var(--bg-panel); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; margin:16px 0; font-size:13px;
+  }
+  .tough-list .th{
+    text-transform:uppercase; font-size:10.5px; letter-spacing:1px; color:var(--ink-faint); margin-bottom:8px;
+  }
+  .tough-list .ti{ display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px solid var(--border); }
+  .tough-list .ti:last-child{ border-bottom:none; }
+  .tough-list .ti .cnt{ font-family:var(--font-mono); color:var(--wrong); white-space:nowrap; }
+  .evo-delta{
+    font-family:var(--font-mono); font-size:10px; padding:1px 6px; border-radius:8px; margin-left:6px;
+  }
+  .evo-delta.ok{ background:var(--correct-bg); color:var(--correct); }
+  .evo-delta.no{ background:var(--wrong-bg); color:var(--wrong); }
+  .topic-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(148px, 1fr));
+    gap:10px;
+    margin-bottom:4px;
+  }
+  .topic-btn{
+    padding:11px 12px;
+    margin-bottom:0;
+    cursor:pointer;
+    overflow:hidden;
+  }
+  .topic-btn .deck-head{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:7px;
+  }
+  .topic-btn .deck-name{ font-size:13.5px; line-height:1.3; }
+  .topic-btn .deck-meta{ font-size:10.5px; }
+  .topic-btn .deck-acc-pill{ font-size:10.5px; padding:2px 7px; white-space:nowrap; align-self:flex-start; }
+  .topic-btn.topic-btn-active{
+    border-color:var(--gold);
+    background:var(--bg-panel-2);
+    box-shadow:0 0 0 1px var(--gold) inset;
+  }
+  .topic-scope-bar{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    margin-bottom:12px;
+  }
+  .scope-title{ font-family:var(--font-display); font-size:17px; color:var(--paper); }
+  .scope-meta{ font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-top:2px; }
+
+  .study-layout{
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .study-main{ min-width:0; }
+  @media (min-width:600px){
+    .study-layout{ flex-direction:row; align-items:flex-start; }
+    .study-queue-panel{ width:200px; flex-shrink:0; }
+    .study-main{ flex:1; }
+  }
+  .study-queue-panel{
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:12px;
+    padding:10px; max-height:340px; display:flex; flex-direction:column;
+  }
+  .queue-panel-header{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12px; font-weight:700; color:var(--paper); cursor:pointer;
+    padding:2px 4px 8px;
+  }
+  .queue-panel-list{
+    overflow-y:auto; display:flex; flex-direction:column; gap:3px;
+  }
+  .queue-panel-list.collapsed{ display:none; }
+  .queue-row{
+    display:flex; align-items:center; gap:7px;
+    padding:6px 7px; border-radius:7px; cursor:pointer; font-size:11.5px;
+    color:var(--ink-faint);
+  }
+  .queue-row:hover{ background:var(--bg-panel-2); }
+  .queue-row.current{ background:var(--gold); color:#1C1D18; font-weight:700; }
+  .queue-row.current .qstats{ color:#1C1D18; }
+  .queue-row .qpos{ font-family:var(--font-mono); font-size:10px; opacity:0.7; width:16px; flex-shrink:0; }
+  .queue-row .qtext{
+    flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
+  }
+  .queue-row .qstats{
+    font-family:var(--font-mono); font-size:10px; white-space:nowrap; color:var(--ink-faint);
+  }
+  .queue-row .qstats .ok{ color:var(--correct); }
+  .queue-row .qstats .no{ color:var(--wrong); }
+  .queue-row.current .qstats .ok, .queue-row.current .qstats .no{ color:#1C1D18; }
+  .queue-empty{ font-size:11.5px; color:var(--ink-faint); padding:8px 4px; }
+  .card-stage{
+    position:relative;
+    height:380px;
+    margin-top:6px;
+    perspective:1400px;
+  }
+  .xp-float{
+    position:absolute;
+    top:40%; left:50%;
+    transform:translate(-50%,-50%) scale(0.8);
+    font-family:var(--font-display);
+    font-size:26px;
+    font-weight:700;
+    z-index:20;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .5s ease;
+  }
+  .xp-float.show{
+    opacity:1;
+    transform:translate(-50%,-70px) scale(1.1);
+  }
+  .xp-float.xp-pos{ color:var(--gold); text-shadow:0 0 12px rgba(184,145,46,0.6); }
+  .xp-float.xp-neg{ color:var(--wrong); text-shadow:0 0 12px rgba(184,67,60,0.5); }
+
+  .flashcard.boost-active .card-face{
+    animation: boostGlow 1.1s ease-in-out infinite alternate;
+  }
+  @keyframes boostGlow{
+    from{ box-shadow: 0 0 14px 2px rgba(255,140,0,0.45), 0 12px 26px rgba(0,0,0,0.4); }
+    to{ box-shadow: 0 0 30px 9px rgba(255,80,0,0.8), 0 12px 26px rgba(0,0,0,0.4); }
+  }
+  .level-panel{ margin-bottom:18px; }
+  .level-badge-btn{ display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:7px 12px; }
+  .mini-bar-track{
+    width:44px; height:4px; border-radius:3px; background:var(--border); overflow:hidden; display:block;
+  }
+  .mini-bar-fill{ display:block; height:100%; background:var(--gold); }
+  .streak-chip{ color:var(--gold); font-weight:700; }
+  .boost-banner{
+    background:linear-gradient(90deg, rgba(184,145,46,0.18), rgba(184,145,46,0.06));
+    border:1px solid var(--gold);
+    color:var(--gold);
+    font-size:12px;
+    font-weight:600;
+    text-align:center;
+    padding:8px 10px;
+    border-radius:9px;
+    margin:-4px 0 14px;
+  }
+  .level-row{ display:flex; justify-content:space-between; align-items:flex-end; }
+  .level-num{ font-family:var(--font-display); font-size:24px; color:var(--paper); }
+  .level-tier{ font-family:var(--font-mono); font-size:12px; color:var(--gold); letter-spacing:0.5px; margin-top:2px; }
+  .level-xp-total{ font-family:var(--font-mono); font-size:13px; color:var(--ink-faint); }
+  .stack-ghost{
+    position:absolute;
+    inset:0;
+    background:var(--paper);
+    border-radius:16px;
+    border:1px solid var(--paper-line);
+    box-shadow:0 8px 18px rgba(0,0,0,0.35);
+  }
+  .stack-ghost.g1{transform:translateY(10px) scale(0.965); opacity:0.55; z-index:1;}
+  .stack-ghost.g2{transform:translateY(20px) scale(0.93); opacity:0.3; z-index:0;}
+
+  .flashcard{
+    position:absolute;
+    inset:0;
+    z-index:2;
+    border-radius:16px;
+    cursor:grab;
+    transform-style:preserve-3d;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1);
+    touch-action:pan-y;
+  }
+  .flashcard.dragging{transition:none; cursor:grabbing;}
+  .flashcard.flipped{transform:rotateY(180deg);}
+  .flashcard.fly-right{transform:translateX(150%) rotate(18deg) !important; transition:transform .35s ease-in;}
+  .flashcard.fly-left{transform:translateX(-150%) rotate(-18deg) !important; transition:transform .35s ease-in;}
+
+  .card-face{
+    position:absolute; inset:0;
+    background:var(--paper);
+    border:1px solid var(--paper-line);
+    border-radius:16px;
+    box-shadow:0 12px 26px rgba(0,0,0,0.4);
+    backface-visibility:hidden;
+    padding:26px 22px;
+    display:flex;
+    flex-direction:column;
+    color:var(--ink);
+  }
+  .card-face.back{transform:rotateY(180deg);}
+  .card-punch{
+    position:absolute; top:16px; left:18px;
+    width:12px; height:12px; border-radius:50%;
+    background:var(--bg);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .card-rule{
+    position:absolute; top:0; bottom:0; left:44px;
+    width:1px; background:rgba(184,67,60,0.35);
+  }
+  .card-deckname{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-left:36px;
+  }
+  .source-chip{
+    display:inline-block;
+    font-family:var(--font-mono);
+    font-size:10px;
+    letter-spacing:0.5px;
+    color:var(--gold);
+    background:rgba(184,145,46,0.12);
+    border:1px solid rgba(184,145,46,0.4);
+    padding:1px 8px;
+    border-radius:20px;
+    margin:5px 0 0 36px;
+  }
+  .card-question{
+    font-family:var(--font-display);
+    font-size:21px;
+    line-height:1.45;
+    margin:16px 0 0 8px;
+    flex:1;
+    display:flex;
+    align-items:center;
+  }
+  .card-hint{
+    text-align:center;
+    font-size:11px;
+    color:var(--ink-faint);
+    letter-spacing:0.5px;
+  }
+  .last-time-chip{
+    text-align:center;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--gold);
+    margin-top:4px;
+  }
+  .card-answer-stamp{
+    align-self:center;
+    font-family:var(--font-display);
+    font-style:italic;
+    font-size:34px;
+    font-weight:700;
+    border:4px solid currentColor;
+    border-radius:10px;
+    padding:6px 22px;
+    transform:rotate(-6deg);
+    letter-spacing:2px;
+  }
+  .stamp-v{color:var(--correct);}
+  .stamp-f{color:var(--wrong);}
+  .back-answer-text{
+    align-self:stretch;
+    font-family:var(--font-display);
+    font-size:20px;
+    line-height:1.45;
+    text-align:center;
+    color:var(--ink);
+    padding:4px 10px;
+    border-top:1px solid var(--paper-line);
+    border-bottom:1px solid var(--paper-line);
+    margin:2px 0;
+  }
+  .card-explic{
+    margin-top:16px;
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--ink-soft);
+    text-align:center;
+    padding:0 6px;
+  }
+  .card-grade-row{
+    display:flex; gap:10px; margin-top:auto; padding-top:14px;
+  }
+  .grade-btn{
+    flex:1; padding:11px; border-radius:9px; border:1.5px solid; font-weight:700; font-size:13.5px;
+    background:transparent;
+  }
+  .grade-btn.ok{border-color:var(--correct); color:var(--correct);}
+  .grade-btn.ok:hover{background:var(--correct-bg);}
+  .grade-btn.no{border-color:var(--wrong); color:var(--wrong);}
+  .grade-btn.no:hover{background:var(--wrong-bg);}
+  .grade-btn.graded{opacity:0.4; pointer-events:none;}
+
+  .study-controls{
+    display:flex; justify-content:center; gap:16px; margin-top:22px;
+  }
+  .study-controls .icon-btn{
+    font-size:19px; border:1px solid var(--border); border-radius:50%;
+    width:42px; height:42px; display:flex; align-items:center; justify-content:center;
+  }
+  .study-controls .icon-btn:hover{border-color:var(--gold);}
+  .study-controls .icon-btn.active-fav{ border-color:var(--gold); }
+
+  .session-end{
+    text-align:center; padding:30px 10px;
+  }
+  .session-end .big-num{
+    font-family:var(--font-display); font-size:44px; color:var(--gold);
+  }
+
+  /* ---- summary ---- */
+  .stat-grid{
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px;
+  }
+  .stat-box{
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:10px;
+    padding:14px 10px; text-align:center;
+  }
+  .stat-box .num{font-family:var(--font-display); font-size:24px; color:var(--gold);}
+  .stat-box .lbl{font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
+
+  .bar-row{margin-bottom:14px;}
+  .hist-deck-breakdown{
+    font-size:10.5px; color:var(--ink-faint); margin-top:4px;
+  }
+  .bar-row .bar-head{
+    display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;
+  }
+  .bar-head .name{font-weight:600;}
+  .bar-head .pct{font-family:var(--font-mono); color:var(--ink-faint);}
+  .bar-track{
+    height:9px; background:var(--bg-panel-2); border-radius:5px; overflow:hidden; display:flex; border:1px solid var(--border);
+  }
+  .bar-ok{background:var(--correct);}
+  .bar-no{background:var(--wrong);}
+
+  /* ---- bottom nav ---- */
+  nav.bottomnav{
+    position:fixed; bottom:0; left:0; right:0;
+    background:rgba(28,29,24,0.96);
+    backdrop-filter:blur(6px);
+    border-top:1px solid var(--border);
+    display:flex;
+    justify-content:center;
+    padding-bottom:env(safe-area-inset-bottom);
+    z-index:50;
+  }
+  nav.bottomnav .navwrap{
+    max-width:var(--content-max); width:100%; display:flex;
+  }
+  nav.bottomnav button{
+    flex:1; background:none; border:none; color:var(--ink-faint);
+    padding:11px 4px 9px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.8px;
+    display:flex; flex-direction:column; align-items:center; gap:4px; font-weight:600;
+  }
+  nav.bottomnav button .ic{font-size:18px;}
+  nav.bottomnav button.active{color:var(--gold);}
+
+  .toast{
+    position:fixed; bottom:78px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--bg-panel-2); border:1px solid var(--gold); color:var(--paper);
+    padding:10px 18px; border-radius:20px; font-size:13px;
+    opacity:0; transition:opacity .25s ease, transform .25s ease;
+    z-index:100; pointer-events:none; max-width:88%; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .hidden{display:none !important;}
+  .divider{height:1px; background:var(--border); margin:18px 0;}
+  a.link-btn{color:var(--gold); text-decoration:underline; cursor:pointer; font-size:12.5px;}
+  .breadcrumb{
+    font-size:12px; color:var(--gold); cursor:pointer; margin-bottom:10px; display:inline-flex; align-items:center; gap:5px;
+  }
+  code.inline-code{
+    background:var(--bg); padding:1px 6px; border-radius:5px; font-family:var(--font-mono); font-size:11.5px; color:var(--gold);
+  }
+  .preview-box{
+    background:var(--paper); color:var(--ink); border:1px solid var(--paper-line);
+    border-radius:10px; padding:14px 16px; margin-top:2px;
+  }
+  .preview-question{ font-family:var(--font-display); font-size:16px; line-height:1.5; }
+  .preview-explic{ font-size:13px; line-height:1.5; color:var(--ink-soft); margin-top:8px; }
+  .preview-explic:empty{ display:none; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div>
+      <div class="brand">Caixa de <span class="vf">V·F</span></div>
+      <div class="subtitle">flashcards verdadeiro ou falso</div>
+    </div>
+    <div class="btn-row" style="gap:6px;">
+      <button class="btn btn-sm btn-ghost level-badge-btn" onclick="showScreen('summary')" title="Seu nível e experiência">
+        <span id="xpBadgeText">Nv.0</span>
+        <span class="mini-bar-track"><span class="mini-bar-fill" id="xpBadgeBar" style="width:0%;"></span></span>
+      </button>
+      <button class="btn btn-sm btn-ghost" onclick="startDailyChallenge()" title="Sorteio do dia — 20 cartões aleatórios de todos os baralhos">Sorteio</button>
+      <button class="btn btn-sm btn-ghost" onclick="startFavoritesStudy()" title="Treinar todos os favoritos">★</button>
+      <button class="btn btn-sm btn-ghost" onclick="showScreen('summary')" title="Resumo">Resumo</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ DECKS SCREEN ============ -->
+    <section id="screen-decks" class="screen active">
+      <div class="section-title">Baralhos</div>
+      <p class="section-sub">Seus conjuntos de cartões, salvos neste navegador. Importe uma base .csv, crie um baralho manualmente ou toque em um baralho para estudar e editar.</p>
+
+      <div class="btn-row" style="margin-bottom:18px;">
+        <button class="btn btn-gold" onclick="toggleImportPanel()">⬆ Importar CSV</button>
+        <button class="btn" onclick="openNewDeckPanel()">+ Novo baralho</button>
+        <button class="btn btn-sm" onclick="exportAllDecksCSV()" title="Baixa um único CSV com todos os baralhos, tópicos e cartões">⬇ Baixar tudo (backup geral)</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadTemplate()">Baixar modelo CSV</button>
+      </div>
+
+      <div id="importPanel" class="panel hidden">
+        <div class="eyebrow">Importar base .csv</div>
+        <label>Nome do baralho (usado se o csv não tiver a coluna "baralho")</label>
+        <input type="text" id="importDeckName" placeholder="Ex: Direito Constitucional">
+        <label>Arquivo .csv</label>
+        <input type="file" id="csvFileInput" accept=".csv,text/csv">
+        <p class="section-sub" style="margin-top:10px;">
+          Colunas esperadas: <code class="inline-code">baralho;topico;pergunta;resposta;explicacao;tipo;fonte</code> (baralho, topico, explicacao, tipo e fonte são opcionais). <b>fonte</b> indica a banca/origem da questão (ex: CEBRASPE, FGV, FCC, PDF, OUTROS ou qualquer outro valor).
+        </p>
+        <p class="section-sub">
+          <b>tipo</b> define o formato do cartão: <code class="inline-code">V/F</code> (padrão, se a coluna vier vazia) para verdadeiro/falso, ou <code class="inline-code">F/V</code> para frente/verso (pergunta aberta). No tipo F/V, a coluna <b>resposta</b> deixa de ser Verdadeiro/Falso e passa a conter o texto da resposta que aparece no verso do cartão; <b>explicacao</b> continua opcional, como um complemento exibido junto.
+        </p>
+        <p class="section-sub">
+          Quebras de linha feitas com Alt+Enter (ou Cmd+Enter) dentro da célula do Excel/Sheets são preservadas automaticamente.
+        </p>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-gold" onclick="handleCSVImport()">Importar</button>
+          <button class="btn btn-ghost" onclick="toggleImportPanel()">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="newDeckPanel" class="panel hidden">
+        <div class="eyebrow">Novo baralho</div>
+        <label>Nome do baralho</label>
+        <input type="text" id="newDeckNameInput" placeholder="Ex: Anatomia — Sistema Nervoso">
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-gold" onclick="createNewDeck()">Criar</button>
+          <button class="btn btn-ghost" onclick="openNewDeckPanel()">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="deckFilterBar" class="filter-bar hidden">
+        <input type="text" id="deckSearchInput" oninput="renderDeckList()" placeholder="Buscar baralho pelo nome...">
+        <div class="filter-row">
+          <select id="deckFilterTopic" onchange="renderDeckList()"></select>
+          <select id="deckFilterFonte" onchange="renderDeckList()"></select>
+        </div>
+        <div class="filter-row">
+          <select id="deckSortSelect" onchange="renderDeckList()">
+            <option value="name">Ordenar: nome (A–Z)</option>
+            <option value="cardsDesc">Mais cartões primeiro</option>
+            <option value="accAsc">Pior desempenho primeiro</option>
+            <option value="accDesc">Melhor desempenho primeiro</option>
+            <option value="recentStudied">Estudado recentemente</option>
+            <option value="staleStudied">Não estudado há mais tempo</option>
+          </select>
+        </div>
+        <div class="acc-filter-row" id="accFilterRow">
+          <button class="acc-chip active" data-acc="all" onclick="setDeckAccFilter('all')">Todos</button>
+          <button class="acc-chip" data-acc="none" onclick="setDeckAccFilter('none')">Sem dados</button>
+          <button class="acc-chip" data-acc="le50" onclick="setDeckAccFilter('le50')">≤ 50%</button>
+          <button class="acc-chip" data-acc="mid" onclick="setDeckAccFilter('mid')">51–79%</button>
+          <button class="acc-chip" data-acc="ge80" onclick="setDeckAccFilter('ge80')">≥ 80%</button>
+          <button class="acc-chip" id="idleFilterChip" onclick="toggleIdleFilter()">Ociosos</button>
+        </div>
+        <div class="filter-summary" id="filterSummary"></div>
+      </div>
+
+      <div id="deckList"></div>
+    </section>
+
+    <!-- ============ DECK DETAIL SCREEN ============ -->
+    <section id="screen-deckDetail" class="screen">
+      <div class="breadcrumb" id="ddBreadcrumb" onclick="showScreen('decks')">← Todos os baralhos</div>
+      <div class="section-title" id="ddTitle">Baralho</div>
+      <p class="section-sub" id="ddMeta"></p>
+      <div id="ddDirtyBanner" class="dirty-banner hidden">
+        Você tem alterações neste baralho que ainda não foram exportadas. Se limpar os dados do navegador ou trocar de aparelho, elas podem se perder.
+        <button class="btn btn-sm btn-gold" onclick="exportDeckCSV(currentDeckId)">Exportar agora</button>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-gold" id="ddStudyBtn">▶ Estudar</button>
+        <button class="btn btn-sm" id="ddFavBtn">★ Favoritos</button>
+        <button class="btn btn-sm" onclick="removeDuplicateCards(currentDeckId)" title="Remove cartões com a mesma pergunta, mantendo o que tem mais histórico de estudo">Remover duplicados</button>
+        <button class="btn btn-sm" onclick="exportDeckCSV(currentDeckId)">⬇ Exportar CSV</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDeck(currentDeckId)">Excluir baralho</button>
+      </div>
+
+      <button class="btn btn-gold btn-block" id="cardFormToggleBtn" onclick="openCardForm()" style="margin-bottom:16px;">+ Adicionar cartão</button>
+
+      <div class="panel hidden" id="cardFormPanel">
+        <div class="eyebrow" id="cardFormLabel">Adicionar cartão</div>
+        <label>Tipo de cartão</label>
+        <div class="vf-toggle type-toggle">
+          <button type="button" class="type-vf" onclick="setCardType('vf')">V/F — Verdadeiro/Falso</button>
+          <button type="button" class="type-fv" onclick="setCardType('fv')">F/V — Frente/Verso</button>
+        </div>
+        <label>Tópico (assunto dentro do baralho, opcional)</label>
+        <input type="text" id="cardTopicInput" list="topicSuggestions" placeholder="Ex: Processo Legislativo">
+        <datalist id="topicSuggestions"></datalist>
+        <label>Fonte (banca/origem da questão, opcional)</label>
+        <input type="text" id="cardFonteInput" list="fonteSuggestions" placeholder="Ex: CEBRASPE">
+        <datalist id="fonteSuggestions"></datalist>
+        <label id="cardQuestionLabel">Pergunta (afirmação a julgar)</label>
+        <div class="rte-toolbar">
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardQuestionInput','bold')" title="Negrito"><b>B</b></button>
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardQuestionInput','italic')" title="Itálico"><i>I</i></button>
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardQuestionInput','insertUnorderedList')" title="Lista com marcadores">≡•</button>
+          <span class="rte-palette">
+            <button type="button" class="rte-swatch" style="background:#3B6FE0" onmousedown="event.preventDefault()" onclick="rteColor('cardQuestionInput','fore','#3B6FE0')" title="Azul"></button>
+            <button type="button" class="rte-swatch" style="background:#C0392B" onmousedown="event.preventDefault()" onclick="rteColor('cardQuestionInput','fore','#C0392B')" title="Vermelho"></button>
+            <button type="button" class="rte-swatch" style="background:#C99A2E" onmousedown="event.preventDefault()" onclick="rteColor('cardQuestionInput','fore','#C99A2E')" title="Amarelo"></button>
+            <button type="button" class="rte-swatch" style="background:#1E8449" onmousedown="event.preventDefault()" onclick="rteColor('cardQuestionInput','fore','#1E8449')" title="Verde"></button>
+            <button type="button" class="rte-swatch rte-swatch-black" onmousedown="event.preventDefault()" onclick="rteColor('cardQuestionInput','fore','inherit')" title="Preto (padrão)"></button>
+          </span>
+          <label class="rte-color-btn rte-highlight-swatch" title="Cor de grifo">▌<input type="color" value="#fff176" onmousedown="rteSaveSelection('cardQuestionInput')" oninput="rteColor('cardQuestionInput','back',this.value)"></label>
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardQuestionInput','removeFormat')" title="Limpar formatação">⌫</button>
+        </div>
+        <div class="rte-editor" id="cardQuestionInput" contenteditable="true" data-placeholder="Ex: A Constituição de 1988 é conhecida como Constituição Cidadã."></div>
+
+        <div id="vfAnswerBlock">
+          <label>Resposta correta</label>
+          <div class="vf-toggle answer-toggle">
+            <button type="button" class="sel-true" onclick="setAnswerToggle(true)">VERDADEIRO</button>
+            <button type="button" class="sel-false" onclick="setAnswerToggle(false)">FALSO</button>
+          </div>
+        </div>
+        <div id="fvAnswerBlock" class="hidden">
+          <label>Resposta (o que aparece no verso do cartão)</label>
+          <div class="rte-toolbar">
+            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardFvAnswerInput','bold')" title="Negrito"><b>B</b></button>
+            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardFvAnswerInput','italic')" title="Itálico"><i>I</i></button>
+            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardFvAnswerInput','insertUnorderedList')" title="Lista com marcadores">≡•</button>
+            <span class="rte-palette">
+              <button type="button" class="rte-swatch" style="background:#3B6FE0" onmousedown="event.preventDefault()" onclick="rteColor('cardFvAnswerInput','fore','#3B6FE0')" title="Azul"></button>
+              <button type="button" class="rte-swatch" style="background:#C0392B" onmousedown="event.preventDefault()" onclick="rteColor('cardFvAnswerInput','fore','#C0392B')" title="Vermelho"></button>
+              <button type="button" class="rte-swatch" style="background:#C99A2E" onmousedown="event.preventDefault()" onclick="rteColor('cardFvAnswerInput','fore','#C99A2E')" title="Amarelo"></button>
+              <button type="button" class="rte-swatch" style="background:#1E8449" onmousedown="event.preventDefault()" onclick="rteColor('cardFvAnswerInput','fore','#1E8449')" title="Verde"></button>
+              <button type="button" class="rte-swatch rte-swatch-black" onmousedown="event.preventDefault()" onclick="rteColor('cardFvAnswerInput','fore','inherit')" title="Preto (padrão)"></button>
+            </span>
+            <label class="rte-color-btn rte-highlight-swatch" title="Cor de grifo">▌<input type="color" value="#fff176" onmousedown="rteSaveSelection('cardFvAnswerInput')" oninput="rteColor('cardFvAnswerInput','back',this.value)"></label>
+            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardFvAnswerInput','removeFormat')" title="Limpar formatação">⌫</button>
+          </div>
+          <div class="rte-editor" id="cardFvAnswerInput" contenteditable="true" data-placeholder="Ex: 60 dias, prorrogável uma vez por igual período."></div>
+        </div>
+
+        <label>Explicação (opcional, complemento exibido junto com a resposta)</label>
+        <div class="rte-toolbar">
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardExplicInput','bold')" title="Negrito"><b>B</b></button>
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardExplicInput','italic')" title="Itálico"><i>I</i></button>
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardExplicInput','insertUnorderedList')" title="Lista com marcadores">≡•</button>
+          <span class="rte-palette">
+            <button type="button" class="rte-swatch" style="background:#3B6FE0" onmousedown="event.preventDefault()" onclick="rteColor('cardExplicInput','fore','#3B6FE0')" title="Azul"></button>
+            <button type="button" class="rte-swatch" style="background:#C0392B" onmousedown="event.preventDefault()" onclick="rteColor('cardExplicInput','fore','#C0392B')" title="Vermelho"></button>
+            <button type="button" class="rte-swatch" style="background:#C99A2E" onmousedown="event.preventDefault()" onclick="rteColor('cardExplicInput','fore','#C99A2E')" title="Amarelo"></button>
+            <button type="button" class="rte-swatch" style="background:#1E8449" onmousedown="event.preventDefault()" onclick="rteColor('cardExplicInput','fore','#1E8449')" title="Verde"></button>
+            <button type="button" class="rte-swatch rte-swatch-black" onmousedown="event.preventDefault()" onclick="rteColor('cardExplicInput','fore','inherit')" title="Preto (padrão)"></button>
+          </span>
+          <label class="rte-color-btn rte-highlight-swatch" title="Cor de grifo">▌<input type="color" value="#fff176" onmousedown="rteSaveSelection('cardExplicInput')" oninput="rteColor('cardExplicInput','back',this.value)"></label>
+          <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('cardExplicInput','removeFormat')" title="Limpar formatação">⌫</button>
+        </div>
+        <div class="rte-editor" id="cardExplicInput" contenteditable="true" data-placeholder="Contexto ou justificativa mostrada após a resposta."></div>
+
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-gold" onclick="saveCardForm()">Salvar cartão</button>
+          <button class="btn btn-ghost" id="cancelEditBtn" onclick="closeCardForm()">Fechar</button>
+        </div>
+      </div>
+
+      <div class="eyebrow">Tópicos</div>
+      <p class="section-sub">Toque em um tópico para filtrar os cartões abaixo e estudar só ele.</p>
+      <div id="topicSelector" class="topic-grid"></div>
+
+      <div class="divider"></div>
+      <div class="topic-scope-bar hidden" id="topicScopeBar">
+        <div>
+          <div class="scope-title" id="scopeTitle">Todos os cartões</div>
+          <div class="scope-meta" id="scopeMeta">0 cartão(ões)</div>
+        </div>
+        <button class="btn btn-sm btn-gold" id="scopeStudyBtn">▶ Estudar</button>
+      </div>
+      <div id="cardTable" class="panel" style="padding:6px 14px;"></div>
+
+      <div class="divider"></div>
+      <div class="eyebrow">Evolução no tempo</div>
+      <p class="section-sub">Seu percentual de acerto por dia, para você comparar hoje, ontem e semanas anteriores.</p>
+      <select id="evoTopicFilter" onchange="renderEvolution()" style="margin-bottom:14px;"></select>
+      <div class="stat-grid" id="evoQuickStats"></div>
+      <div id="evoList"></div>
+    </section>
+
+    <!-- ============ STUDY SCREEN ============ -->
+    <section id="screen-study" class="screen">
+      <div class="breadcrumb" onclick="exitStudy()">← Sair do estudo</div>
+
+      <div id="studyActive">
+        <div class="study-topline">
+          <div class="eyebrow" id="studyDeckName" style="margin:0;">Baralho</div>
+          <div class="session-stats">
+            <span id="studyTimer" class="timer-chip">⏱ 00:00</span>
+            <span id="streakChip" class="streak-chip hidden">Sequência: 0</span>
+            <span class="ok" id="sessOk">✓ 0</span>
+            <span class="no" id="sessNo">✕ 0</span>
+          </div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+        <div class="queue-line" id="queueLine">restam 0 · dominados 0</div>
+        <div id="boostBanner" class="boost-banner hidden"></div>
+
+        <div class="study-layout">
+          <div class="study-queue-panel" id="studyQueuePanel">
+            <div class="queue-panel-header" onclick="toggleQueuePanelCollapse()">
+              <span>Fila (<span id="queuePanelCount">0</span>)</span>
+              <span id="queuePanelToggleIcon">▾</span>
+            </div>
+            <div class="queue-panel-list" id="queuePanelList"></div>
+          </div>
+
+          <div class="study-main">
+            <div class="card-stage" id="cardStage">
+              <div class="xp-float" id="xpFloat"></div>
+              <div class="stack-ghost g2"></div>
+              <div class="stack-ghost g1"></div>
+              <div class="flashcard" id="flashcard">
+                <div class="card-face front">
+                  <div class="card-punch"></div>
+                  <div class="card-rule"></div>
+                  <div class="card-deckname" id="frontDeckLabel"></div>
+                  <div class="source-chip hidden" id="frontSourceTag"></div>
+                  <div class="repeat-badge hidden" id="repeatBadge"></div>
+                  <div class="fav-badge hidden" id="studyFavBadge">★</div>
+                  <div class="card-question" id="frontQuestion">—</div>
+                  <div class="card-hint" id="frontHint">toque para virar · arraste para pular</div>
+                  <div class="last-time-chip hidden" id="frontLastTime"></div>
+                </div>
+                <div class="card-face back">
+                  <div class="card-punch"></div>
+                  <div class="card-rule"></div>
+                  <div class="card-answer-stamp" id="backStamp">V</div>
+                  <div class="back-answer-text hidden" id="backAnswerText"></div>
+                  <div class="card-explic" id="backExplic"></div>
+                  <div class="card-grade-row">
+                    <button class="grade-btn no" id="gradeWrongBtn" onclick="gradeCard(false)">✕ Errei</button>
+                    <button class="grade-btn ok" id="gradeOkBtn" onclick="gradeCard(true)">✓ Acertei</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="study-controls">
+              <button class="icon-btn" onclick="skipCard()" title="Pular sem responder">⏭</button>
+              <button class="icon-btn" id="studyFavBtn" onclick="toggleFavoriteInStudy()" title="Favoritar">☆</button>
+              <button class="icon-btn" onclick="editCardFromStudy()" title="Corrigir este cartão">✎</button>
+              <button class="icon-btn" onclick="flipCard()" title="Virar">⟲</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="studyEnd" class="session-end hidden">
+        <div class="eyebrow">Sessão concluída — todos os cartões foram dominados</div>
+        <div class="big-num" id="endAccuracy">0%</div>
+        <p class="section-sub">de acerto nesta sessão (contando repetições)</p>
+        <p class="section-sub" id="endTimeSpent"></p>
+        <div id="toughCardsBox"></div>
+        <div class="btn-row" style="justify-content:center;">
+          <button class="btn btn-gold" onclick="restartStudy()">↻ Estudar novamente</button>
+          <button class="btn" onclick="showScreen('summary')">Ver resumo geral</button>
+        </div>
+      </div>
+
+      <div id="studyEmpty" class="empty-state hidden">
+        <div class="hole"></div>
+        Nenhum cartão para estudar aqui ainda.
+      </div>
+    </section>
+
+    <!-- ============ HISTORY SCREEN ============ -->
+    <section id="screen-history" class="screen">
+      <div class="section-title">Histórico de estudo</div>
+      <p class="section-sub">Registro de tudo que você já estudou, dia a dia, cruzando todos os baralhos.</p>
+
+      <div class="stat-grid" id="histOverallStats"></div>
+
+      <div class="eyebrow">Evolução geral (todos os baralhos)</div>
+      <div id="histGlobalTimeline"></div>
+
+      <div class="divider"></div>
+      <div class="eyebrow">Sessões recentes</div>
+      <div id="histSessionList"></div>
+
+      <div class="divider"></div>
+      <div class="eyebrow">Baralhos estudados</div>
+      <p class="section-sub">Toque em um baralho para abrir o detalhamento por dia e por tópico.</p>
+      <div id="histDeckList"></div>
+    </section>
+
+    <!-- ============ SUMMARY SCREEN ============ -->
+    <section id="screen-summary" class="screen">
+      <div class="section-title">Resumo de desempenho</div>
+      <p class="section-sub">Estatísticas acumuladas de todas as revisões registradas, guardadas neste navegador.</p>
+
+      <div class="panel level-panel">
+        <div class="eyebrow">Seu progresso</div>
+        <div class="level-row">
+          <div>
+            <div class="level-num" id="sumLevelNum">Nível 0</div>
+            <div class="level-tier" id="sumLevelTier">Iniciante</div>
+          </div>
+          <div class="level-xp-total" id="sumXpTotal">0 XP</div>
+        </div>
+        <div class="progress-track" style="margin:10px 0 4px;"><div class="progress-fill" id="sumXpBar" style="width:0%;"></div></div>
+        <div class="filter-summary" style="margin-top:2px;"><span id="sumXpToNext"></span></div>
+        <p class="section-sub" style="margin-top:10px; margin-bottom:0;">
+          Acerto normal <b>+1 XP</b>, erro <b>−1 XP</b>. No Sorteio do Dia, acertos valem <b>+3 XP</b> na 1ª vez do dia, <b>+2</b> na 2ª, <b>+1</b> a partir da 3ª. A cada <b>10 acertos seguidos</b> (qualquer baralho), um <b>BOOST</b> dobra os acertos pelos próximos 10 cartões — 2 erros durante o boost o encerram antes. Cada nível custa 10% mais XP que o anterior.
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">Estatísticas de jogo</div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="num" id="sumStreakBest">0</div><div class="lbl">maior sequência</div></div>
+          <div class="stat-box"><div class="num" id="sumBoostOk">0</div><div class="lbl">boosts concluídos</div></div>
+          <div class="stat-box"><div class="num" id="sumBoostFail">0</div><div class="lbl">boosts fracassados</div></div>
+        </div>
+        <div class="filter-summary" style="margin-top:0;"><span id="sumBoostPoints"></span></div>
+        <div id="sumStreakLeaderboard" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num" id="sumDecks">0</div><div class="lbl">baralhos</div></div>
+        <div class="stat-box"><div class="num" id="sumCards">0</div><div class="lbl">cartões</div></div>
+        <div class="stat-box"><div class="num" id="sumAcc">—</div><div class="lbl">acerto geral</div></div>
+      </div>
+
+      <div id="summaryBars"></div>
+
+      <div id="summaryEmpty" class="empty-state hidden">
+        <div class="hole"></div>
+        Nenhuma revisão registrada ainda.<br>Estude um baralho para ver suas estatísticas aqui.
+      </div>
+
+      <div class="divider"></div>
+      <button class="btn btn-danger btn-sm" onclick="resetAllStats()">Zerar todas as estatísticas</button>
+    </section>
+
+  </main>
+
+  <nav class="bottomnav">
+    <div class="navwrap">
+      <button data-tab="decks" class="active" onclick="showScreen('decks')">Baralhos</button>
+      <button data-tab="study" onclick="goStudyTab()">Estudar</button>
+      <button data-tab="history" onclick="showScreen('history')">Histórico</button>
+      <button data-tab="summary" onclick="showScreen('summary')">Resumo</button>
+    </div>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ============================================================
+   DATA LAYER
+   ============================================================ */
+const STORAGE_KEY = 'vf_flashcards_data_v1';
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){ console.warn('Falha ao ler dados salvos', e); }
+  return { decks: [], dailyStats: [] };
+}
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+}
+let DATA = loadData();
+if(!DATA.dailyStats) DATA.dailyStats = [];
+if(!DATA.sessionLog) DATA.sessionLog = [];
+if(typeof DATA.xp !== 'number') DATA.xp = 0;
+if(!DATA.dailyChallenge) DATA.dailyChallenge = { date: null, cardIds: [], timesStarted: 0 };
+if(typeof DATA.dailyChallenge.timesStarted !== 'number') DATA.dailyChallenge.timesStarted = 0;
+if(!DATA.streak) DATA.streak = { current: 0, best: 0 };
+if(!DATA.boost) DATA.boost = { active: false, cardsRemaining: 0, wrongCount: 0 };
+if(!DATA.boostStats) DATA.boostStats = { successCount: 0, failCount: 0, pointsEarned: 0 };
+DATA.decks.forEach(d=>{
+  if(typeof d.streakCurrent !== 'number') d.streakCurrent = 0;
+  if(typeof d.streakBest !== 'number') d.streakBest = 0;
+});
+
+function localDateStr(d){
+  d = d || new Date();
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function daysSinceDateStr(dateStr){
+  if(!dateStr) return null;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const then = new Date(y, m-1, d);
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((now - then) / 86400000);
+}
+
+/* ============================================================
+   GAMIFICATION — XP, levels, and named tiers
+   Level 1 costs BASE_LEVEL_XP; each subsequent level costs 10%
+   more than the previous one, compounding (e.g. level 3 needs
+   1.1 × level 2's requirement × 1.1 × level 1's requirement).
+   Tiers repeat each base name an increasing number of times
+   before moving to the next name (Iniciante x1, Intermediário x2,
+   Avançado x3, Especialista x4, Mestre x5, Lendário x6, ...),
+   each repeat suffixed with a Roman numeral.
+   ============================================================ */
+const BASE_LEVEL_XP = 100;
+const LEVEL_GROWTH = 1.1;
+const TIER_BASE_NAMES = ['Iniciante','Intermediário','Avançado','Especialista','Mestre','Lendário','Imortal','Divino'];
+function toRoman(num){
+  const map = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+  let res = '';
+  for(const [val,sym] of map){ while(num>=val){ res+=sym; num-=val; } }
+  return res;
+}
+function getTierName(level){
+  const band = Math.floor(Math.max(0,level)/10);
+  let nameIdx = 0, repeatCount = 1, consumed = 0;
+  while(true){
+    const isLastName = nameIdx === TIER_BASE_NAMES.length - 1;
+    if(band < consumed + repeatCount || isLastName){
+      const rep = band - consumed;
+      return TIER_BASE_NAMES[nameIdx] + (rep<=0 ? '' : ' ' + toRoman(rep+1));
+    }
+    consumed += repeatCount;
+    nameIdx++;
+    repeatCount++;
+  }
+}
+/* XP required to go from level (n-1) to level n (n >= 1), compounding 10% per level */
+function xpNeededForLevel(n){
+  return Math.round(BASE_LEVEL_XP * Math.pow(LEVEL_GROWTH, n-1));
+}
+/* Walks the compounding thresholds to find current level, XP into that level,
+   and XP needed for the next one. Levels grow exponentially in cost, so this
+   loop is always short in practice. */
+function getLevelInfo(xp){
+  xp = Math.max(0, xp||0);
+  let level = 0, cumulative = 0;
+  while(true){
+    const need = xpNeededForLevel(level+1);
+    if(cumulative + need > xp) break;
+    cumulative += need;
+    level++;
+  }
+  return { level, into: xp - cumulative, nextNeed: xpNeededForLevel(level+1), cumulative };
+}
+function getLevel(xp){ return getLevelInfo(xp).level; }
+function updateXpBadge(){
+  const badge = document.getElementById('xpBadgeText');
+  const bar = document.getElementById('xpBadgeBar');
+  if(!badge) return;
+  const info = getLevelInfo(DATA.xp);
+  badge.textContent = 'Nv.' + info.level;
+  if(bar) bar.style.width = Math.round((info.into/info.nextNeed)*100) + '%';
+}
+function awardXp(delta){
+  const oldLevel = getLevel(DATA.xp);
+  DATA.xp = Math.max(0, (DATA.xp||0) + delta);
+  const newLevel = getLevel(DATA.xp);
+  updateXpBadge();
+  saveData();
+  if(newLevel > oldLevel){
+    toast('Nível ' + newLevel + ' alcançado — ' + getTierName(newLevel) + '!');
+  }
+  return DATA.xp;
+}
+/* Records one graded attempt into a compact per-day/per-deck/per-topic bucket
+   (not one row per attempt) so storage stays small no matter how long the
+   app is used, while still letting us reconstruct daily accuracy history. */
+function recordAttempt(deckId, topico, correct){
+  topico = (topico || '').trim();
+  const date = localDateStr();
+  let entry = DATA.dailyStats.find(e => e.date===date && e.deckId===deckId && e.topico===topico);
+  if(!entry){ entry = { date, deckId, topico, ok:0, tot:0 }; DATA.dailyStats.push(entry); }
+  entry.tot++;
+  if(correct) entry.ok++;
+}
+function getDailyAccuracy(deckId, topicoFilter){
+  const entries = DATA.dailyStats.filter(e => e.deckId===deckId && (topicoFilter==='__all__' || (e.topico||'')===topicoFilter));
+  const byDate = {};
+  entries.forEach(e=>{
+    if(!byDate[e.date]) byDate[e.date] = {ok:0, tot:0};
+    byDate[e.date].ok += e.ok; byDate[e.date].tot += e.tot;
+  });
+  return Object.entries(byDate)
+    .map(([date,v])=>({date, ok:v.ok, tot:v.tot, pct: Math.round((v.ok/v.tot)*100)}))
+    .sort((a,b)=> b.date.localeCompare(a.date));
+}
+function formatDateLabel(dateStr){
+  const today = localDateStr();
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const yest = localDateStr(y);
+  if(dateStr === today) return 'Hoje';
+  if(dateStr === yest) return 'Ontem';
+  const [yy,mm,dd] = dateStr.split('-');
+  const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return `${parseInt(dd,10)} ${months[parseInt(mm,10)-1]}`;
+}
+
+function uid(prefix){
+  return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+function findDeck(id){ return DATA.decks.find(d => d.id === id); }
+function findCardOwner(cardId){
+  for(const deck of DATA.decks){
+    const card = deck.cards.find(c=>c.id===cardId);
+    if(card) return { card, deckId: deck.id };
+  }
+  return null;
+}
+function toggleFavorite(cardId){
+  const owner = findCardOwner(cardId);
+  if(!owner) return null;
+  owner.card.favorito = !owner.card.favorito;
+  saveData();
+  return owner.card.favorito;
+}
+function findOrCreateDeckByName(name){
+  name = (name || 'Sem nome').trim();
+  let deck = DATA.decks.find(d => d.name.toLowerCase() === name.toLowerCase());
+  if(!deck){
+    deck = { id: uid('deck'), name, cards: [], dirty: false, streakCurrent: 0, streakBest: 0 };
+    DATA.decks.push(deck);
+  }
+  return deck;
+}
+function markDeckDirty(deckId){
+  const d = findDeck(deckId);
+  if(d) d.dirty = true;
+}
+function clearDeckDirty(deckId){
+  const d = findDeck(deckId);
+  if(d) d.dirty = false;
+}
+const FONTE_SUGESTOES = ['CEBRASPE','FGV','FCC','PDF','OUTROS'];
+function newCard(pergunta, resposta, explicacao, topico, tipo, fonte){
+  tipo = tipo === 'fv' ? 'fv' : 'vf';
+  return {
+    id: uid('card'),
+    tipo,
+    pergunta: pergunta.trim(),
+    // For 'vf' cards resposta is boolean (verdadeiro/falso).
+    // For 'fv' cards resposta is the free-text answer shown on the back.
+    resposta: tipo === 'fv' ? (resposta||'').toString().trim() : !!resposta,
+    explicacao: (explicacao||'').trim(),
+    topico: (topico||'').trim(),
+    fonte: (fonte||'').trim(),
+    favorito: false,
+    stats: { acertos:0, erros:0, ultimoResultado:null, ultimaRevisao:null, ultimoTempoRespostaSeg:null }
+  };
+}
+function parseTipo(v){
+  const s = (v||'').toString().trim().toLowerCase().replace(/\s+/g,'');
+  if(s === 'f/v' || s === 'fv' || s.includes('frente')) return 'fv';
+  return 'vf';
+}
+function normalizeHeader(h){
+  return (h||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.bottomnav button').forEach(b=>b.classList.remove('active'));
+  const navBtn = document.querySelector('.bottomnav button[data-tab="'+name+'"]');
+  if(navBtn) navBtn.classList.add('active');
+  if(name === 'decks') renderDeckList();
+  if(name === 'summary') renderSummary();
+  if(name === 'history') renderHistory();
+}
+function goStudyTab(){
+  if(Object.keys(studyCardIndex).length){ showScreen('study'); renderStudyCard(); return; }
+  if(currentDeckId){ startStudy(currentDeckId); }
+  else if(DATA.decks.length){ startStudy(DATA.decks[0].id); }
+  else { showScreen('decks'); toast('Crie ou importe um baralho primeiro.'); }
+}
+
+/* ============================================================
+   CSV PARSING / IMPORT / EXPORT
+   ============================================================ */
+function detectDelimiter(headerLine){
+  const semi = (headerLine.match(/;/g)||[]).length;
+  const comma = (headerLine.match(/,/g)||[]).length;
+  return semi >= comma ? ';' : ',';
+}
+/* Full-text state-machine CSV parser: correctly handles quoted fields that
+   contain real line breaks (e.g. Alt+Enter inside an Excel/Sheets cell),
+   which a naive "split by \n first" parser would break. */
+function parseCSV(text){
+  const firstLine = text.split(/\r?\n/,1)[0] || '';
+  const delim = detectDelimiter(firstLine);
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  const n = text.length;
+  while(i < n){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += c; i++; continue;
+    } else {
+      if(c === '"'){ inQuotes = true; i++; continue; }
+      if(c === delim){ row.push(field); field = ''; i++; continue; }
+      if(c === '\r'){ i++; continue; }
+      if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+      field += c; i++; continue;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+
+  const cleanRows = rows.filter(r => r.some(v => v && v.trim().length));
+  if(!cleanRows.length) return { rows: [], columns: [] };
+  const header = cleanRows[0].map(h => h.trim().toLowerCase());
+  const dataRows = cleanRows.slice(1).map(r=>{
+    const obj = {};
+    header.forEach((h,idx)=> obj[h] = (r[idx] !== undefined ? r[idx] : '').replace(/^[ \t]+|[ \t]+$/g,''));
+    return obj;
+  });
+  return { rows: dataRows, columns: header };
+}
+function parseBool(v){
+  if(v===undefined) return null;
+  const s = v.toString().trim().toLowerCase();
+  if(['v','verdadeiro','true','1','certo','correto'].includes(s)) return true;
+  if(['f','falso','false','0','errado','incorreto'].includes(s)) return false;
+  return null;
+}
+
+function toggleImportPanel(){
+  document.getElementById('importPanel').classList.toggle('hidden');
+  document.getElementById('newDeckPanel').classList.add('hidden');
+}
+function openNewDeckPanel(){
+  document.getElementById('newDeckPanel').classList.toggle('hidden');
+  document.getElementById('importPanel').classList.add('hidden');
+}
+function createNewDeck(){
+  const name = document.getElementById('newDeckNameInput').value.trim();
+  if(!name){ toast('Dê um nome ao baralho.'); return; }
+  const deck = findOrCreateDeckByName(name);
+  saveData();
+  document.getElementById('newDeckNameInput').value = '';
+  document.getElementById('newDeckPanel').classList.add('hidden');
+  renderDeckList();
+  openDeckDetail(deck.id);
+}
+
+function handleCSVImport(){
+  const fileInput = document.getElementById('csvFileInput');
+  const fallbackName = document.getElementById('importDeckName').value.trim();
+  const file = fileInput.files[0];
+  if(!file){ toast('Selecione um arquivo .csv.'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const { rows, columns } = parseCSV(e.target.result);
+      if(!rows.length){ toast('O arquivo não contém linhas de dados.'); return; }
+
+      const findCol = (candidates)=>{
+        const norm = columns.map(normalizeHeader);
+        for(const cand of candidates){
+          const idx = norm.indexOf(cand);
+          if(idx !== -1) return columns[idx];
+        }
+        return null;
+      };
+      const dCol = findCol(['baralho','deck','disciplina']);
+      const qCol = findCol(['pergunta','questao','question','afirmacao']);
+      const aCol = findCol(['resposta','answer','gabarito']);
+      const eCol = findCol(['explicacao','explanation','justificativa']);
+      const tCol = findCol(['topico','assunto','tema','subtopico','subtema']);
+      const typeCol = findCol(['tipo','type','formato']);
+      const fCol = findCol(['fonte','banca','source','origem']);
+
+      if(!qCol || !aCol){
+        toast('CSV precisa das colunas "pergunta" e "resposta".');
+        return;
+      }
+      let imported = 0, skipped = 0;
+      const touchedDecks = new Set();
+      rows.forEach(row=>{
+        const pergunta = row[qCol];
+        const topico = tCol ? row[tCol] : '';
+        const explicacao = eCol ? row[eCol] : '';
+        const tipo = typeCol ? parseTipo(row[typeCol]) : 'vf';
+        const fonte = fCol ? row[fCol] : '';
+        const deckName = (dCol && row[dCol]) ? row[dCol] : (fallbackName || file.name.replace(/\.csv$/i,''));
+
+        let resposta;
+        if(tipo === 'fv'){
+          resposta = (row[aCol]||'').trim();
+          if(!pergunta || !resposta){ skipped++; return; }
+        } else {
+          resposta = parseBool(row[aCol]);
+          if(!pergunta || resposta === null){ skipped++; return; }
+        }
+        const deck = findOrCreateDeckByName(deckName);
+        deck.cards.push(newCard(pergunta, resposta, explicacao, topico, tipo, fonte));
+        touchedDecks.add(deck.id);
+        imported++;
+      });
+      saveData();
+      renderDeckList();
+      document.getElementById('importPanel').classList.add('hidden');
+      fileInput.value = '';
+      toast(`${imported} cartão(ões) importado(s)` + (skipped ? `, ${skipped} ignorado(s)` : '') + '.');
+      if(touchedDecks.size === 1) openDeckDetail([...touchedDecks][0]);
+    }catch(err){
+      console.error(err);
+      toast('Não foi possível ler o CSV. Verifique o formato.');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function csvEscape(val, delim){
+  val = (val===undefined||val===null) ? '' : String(val);
+  if(val.includes(delim) || val.includes('"') || val.includes('\n')){
+    return '"' + val.replace(/"/g,'""') + '"';
+  }
+  return val;
+}
+function downloadFile(filename, content){
+  const blob = new Blob(['\uFEFF'+content], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function deckToCSV(decks){
+  const delim = ';';
+  const header = ['baralho','topico','pergunta','resposta','explicacao','tipo','fonte'].join(delim);
+  const lines = [header];
+  decks.forEach(deck=>{
+    deck.cards.forEach(c=>{
+      lines.push([
+        csvEscape(deck.name, delim),
+        csvEscape(c.topico, delim),
+        csvEscape(htmlToPlainMarkup(c.pergunta), delim),
+        c.tipo === 'fv' ? csvEscape(htmlToPlainMarkup(c.resposta), delim) : (c.resposta ? 'Verdadeiro' : 'Falso'),
+        csvEscape(htmlToPlainMarkup(c.explicacao), delim),
+        c.tipo === 'fv' ? 'F/V' : 'V/F',
+        csvEscape(c.fonte, delim)
+      ].join(delim));
+    });
+  });
+  return lines.join('\n');
+}
+function exportDeckCSV(deckId){
+  const deck = findDeck(deckId);
+  if(!deck) return;
+  if(!deck.cards.length){ toast('Este baralho não tem cartões para exportar.'); return; }
+  downloadFile(sanitizeFilename(deck.name)+'.csv', deckToCSV([deck]));
+  clearDeckDirty(deckId);
+  saveData();
+  renderDeckDetail();
+  toast('Baralho exportado.');
+}
+/* Full backup: every deck, every topic, in a single CSV (the "baralho" and
+   "topico" columns already keep everything distinguishable when re-imported). */
+function exportAllDecksCSV(){
+  const totalCards = DATA.decks.reduce((s,d)=>s+d.cards.length, 0);
+  if(!totalCards){ toast('Nenhum cartão para exportar ainda.'); return; }
+  const filename = 'backup_completo_' + localDateStr() + '.csv';
+  downloadFile(filename, deckToCSV(DATA.decks));
+  DATA.decks.forEach(d => clearDeckDirty(d.id));
+  saveData();
+  renderDeckList();
+  toast(`Backup completo exportado — ${totalCards} cartão(ões) de ${DATA.decks.length} baralho(s).`);
+}
+function sanitizeFilename(s){
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9-_ ]/g,'').trim().replace(/\s+/g,'_') || 'baralho';
+}
+function downloadTemplate(){
+  const sample = 'baralho;topico;pergunta;resposta;explicacao;tipo;fonte\n' +
+    'Direito Constitucional;Processo Legislativo;Medida provisória tem força de lei desde a edição.;Verdadeiro;Produz efeitos imediatos, mas depende de conversão em lei pelo Congresso em até 60+60 dias.;V/F;CEBRASPE\n' +
+    'Direito Constitucional;Direitos Fundamentais;Os direitos fundamentais são todos absolutos e sem exceções.;Falso;Podem sofrer restrições e ponderação diante de outros direitos, como no caso da liberdade de expressão.;V/F;FGV\n' +
+    'Direito Constitucional;Processo Legislativo;Qual é o prazo de vigência de uma medida provisória antes de perder a eficácia se não for convertida em lei?;60 dias, prorrogável uma vez por igual período.;Prevista no art. 62 da Constituição Federal.;F/V;PDF';
+  downloadFile('modelo_flashcards.csv', sample);
+}
+
+/* ============================================================
+   DECK LIST RENDER — with search / topic / accuracy filters + sort
+   ============================================================ */
+let currentDeckAccFilter = 'all'; // all | none | le50 | mid | ge80
+let idleFilterOn = false;
+const OCIOSO_DIAS = 7; // days without study before a deck is flagged as idle
+
+function deckAccuracy(deck){
+  let ok=0, total=0;
+  deck.cards.forEach(c=>{ ok += c.stats.acertos; total += c.stats.acertos + c.stats.erros; });
+  return total ? Math.round((ok/total)*100) : null;
+}
+function deckLastStudied(deckId){
+  const entries = DATA.dailyStats.filter(e=>e.deckId===deckId);
+  if(!entries.length) return null;
+  return entries.reduce((max,e)=> e.date > max ? e.date : max, entries[0].date);
+}
+/* status: 'never' (no study data), 'idle' (>= OCIOSO_DIAS since last study), 'active' */
+function deckIdleInfo(deck){
+  const last = deckLastStudied(deck.id);
+  if(!last) return { status:'never', days:null };
+  const days = daysSinceDateStr(last);
+  return { status: days >= OCIOSO_DIAS ? 'idle' : 'active', days };
+}
+function getAllTopicsAcrossDecks(){
+  const set = new Set();
+  DATA.decks.forEach(d => d.cards.forEach(c=>{ const t=(c.topico||'').trim(); if(t) set.add(t); }));
+  return [...set].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+function getAllFontesAcrossDecks(){
+  const set = new Set();
+  DATA.decks.forEach(d => d.cards.forEach(c=>{ const f=(c.fonte||'').trim(); if(f) set.add(f); }));
+  return [...set].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+function updateDeckTopicFilterOptions(){
+  const sel = document.getElementById('deckFilterTopic');
+  if(!sel) return;
+  const topics = getAllTopicsAcrossDecks();
+  const prev = sel.value;
+  sel.innerHTML = '<option value="__all__">Todos os tópicos</option>' + topics.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  if([...sel.options].some(o=>o.value===prev)) sel.value = prev;
+}
+function updateDeckFonteFilterOptions(){
+  const sel = document.getElementById('deckFilterFonte');
+  if(!sel) return;
+  const fontes = getAllFontesAcrossDecks();
+  const prev = sel.value;
+  sel.innerHTML = '<option value="__all__">Todas as fontes</option>' + fontes.map(f=>`<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+  if([...sel.options].some(o=>o.value===prev)) sel.value = prev;
+}
+function setDeckAccFilter(val){
+  currentDeckAccFilter = val;
+  document.querySelectorAll('.acc-chip:not(#idleFilterChip)').forEach(b=> b.classList.toggle('active', b.dataset.acc===val));
+  renderDeckList();
+}
+function toggleIdleFilter(){
+  idleFilterOn = !idleFilterOn;
+  document.getElementById('idleFilterChip').classList.toggle('active', idleFilterOn);
+  renderDeckList();
+}
+function clearDeckFilters(){
+  document.getElementById('deckSearchInput').value = '';
+  document.getElementById('deckFilterTopic').value = '__all__';
+  document.getElementById('deckFilterFonte').value = '__all__';
+  document.getElementById('deckSortSelect').value = 'name';
+  currentDeckAccFilter = 'all';
+  idleFilterOn = false;
+  document.getElementById('idleFilterChip').classList.remove('active');
+  document.querySelectorAll('.acc-chip:not(#idleFilterChip)').forEach(b=> b.classList.toggle('active', b.dataset.acc==='all'));
+  renderDeckList();
+}
+function deckMatchesFilters(deck){
+  const q = (document.getElementById('deckSearchInput').value||'').trim().toLowerCase();
+  if(q && !deck.name.toLowerCase().includes(q)) return false;
+
+  const topicFilter = document.getElementById('deckFilterTopic').value || '__all__';
+  if(topicFilter !== '__all__' && !deck.cards.some(c => (c.topico||'').trim() === topicFilter)) return false;
+
+  const fonteFilter = document.getElementById('deckFilterFonte').value || '__all__';
+  if(fonteFilter !== '__all__' && !deck.cards.some(c => (c.fonte||'').trim() === fonteFilter)) return false;
+
+  const acc = deckAccuracy(deck);
+  switch(currentDeckAccFilter){
+    case 'none':  if(acc !== null) return false; break;
+    case 'le50':  if(acc === null || acc > 50) return false; break;
+    case 'mid':   if(acc === null || acc <= 50 || acc >= 80) return false; break;
+    case 'ge80':  if(acc === null || acc < 80) return false; break;
+  }
+  if(idleFilterOn){
+    const idle = deckIdleInfo(deck);
+    if(idle.status === 'active') return false;
+  }
+  return true;
+}
+function sortDecks(list){
+  const sortBy = document.getElementById('deckSortSelect').value || 'name';
+  const withMeta = list.map(deck => ({
+    deck,
+    acc: deckAccuracy(deck),
+    last: deckLastStudied(deck.id)
+  }));
+  switch(sortBy){
+    case 'cardsDesc':
+      withMeta.sort((a,b)=> b.deck.cards.length - a.deck.cards.length);
+      break;
+    case 'accAsc': // worst first, never-studied at the end
+      withMeta.sort((a,b)=> (a.acc===null?101:a.acc) - (b.acc===null?101:b.acc));
+      break;
+    case 'accDesc': // best first, never-studied at the end
+      withMeta.sort((a,b)=> (b.acc===null?-1:b.acc) - (a.acc===null?-1:a.acc));
+      break;
+    case 'recentStudied': // studied most recently first, never-studied at the end
+      withMeta.sort((a,b)=> (b.last||'') .localeCompare(a.last||''));
+      break;
+    case 'staleStudied': // never-studied and longest-untouched first (needs attention)
+      withMeta.sort((a,b)=> (a.last||'').localeCompare(b.last||''));
+      break;
+    default:
+      withMeta.sort((a,b)=> a.deck.name.localeCompare(b.deck.name, 'pt-BR'));
+  }
+  return withMeta.map(x=>x.deck);
+}
+function renderDeckList(){
+  const wrap = document.getElementById('deckList');
+  const bar = document.getElementById('deckFilterBar');
+  if(!DATA.decks.length){
+    bar.classList.add('hidden');
+    wrap.innerHTML = `<div class="empty-state"><div class="hole"></div>
+      Nenhum baralho ainda.<br>Importe um CSV ou crie um baralho para começar.</div>`;
+    return;
+  }
+  bar.classList.remove('hidden');
+  updateDeckTopicFilterOptions();
+  updateDeckFonteFilterOptions();
+
+  const filtered = sortDecks(DATA.decks.filter(deckMatchesFilters));
+  document.getElementById('filterSummary').innerHTML =
+    `<span>Mostrando ${filtered.length} de ${DATA.decks.length} baralho(s)</span>
+     <a class="link-btn" onclick="clearDeckFilters()">Limpar filtros</a>`;
+
+  if(!filtered.length){
+    wrap.innerHTML = `<div class="empty-state"><div class="hole"></div>
+      Nenhum baralho corresponde a esses filtros.<br>
+      <a class="link-btn" onclick="clearDeckFilters()">Limpar filtros</a></div>`;
+    return;
+  }
+
+  wrap.innerHTML = '';
+  filtered.forEach(deck=>{
+    const acc = deckAccuracy(deck);
+    const pillClass = acc===null ? 'pill-neutral' : acc>=70 ? 'pill-good' : 'pill-bad';
+    const pillText = acc===null ? 'sem dados' : acc+'% acerto';
+
+    const idle = deckIdleInfo(deck);
+    let idleBadge = '';
+    if(idle.status === 'never') idleBadge = '<span class="badge-new">nunca estudado</span>';
+    else if(idle.status === 'idle') idleBadge = `<span class="badge-idle">ocioso · ${idle.days}d sem estudar</span>`;
+    const dirtyBadge = deck.dirty ? '<span class="badge-dirty">não exportado</span>' : '';
+    const badgesHtml = (idleBadge || dirtyBadge) ? `<div class="deck-badges">${idleBadge}${dirtyBadge}</div>` : '';
+
+    const div = document.createElement('div');
+    div.className = 'deck-card';
+    div.onclick = ()=> openDeckDetail(deck.id);
+    div.innerHTML = `
+      <div class="deck-head">
+        <div class="deck-name">${escapeHtml(deck.name)}</div>
+        <div class="deck-acc-pill ${pillClass}">${pillText}</div>
+      </div>
+      <div class="deck-meta">${deck.cards.length} cartão(ões)</div>
+      ${badgesHtml}`;
+    wrap.appendChild(div);
+  });
+}
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML;
+}
+/* Renders our lightweight text-formatting syntax as safe HTML.
+   Input is HTML-escaped first, so the only markup that can appear
+   is what we explicitly generate below — no injection risk.
+   Syntax: **negrito**  *itálico*  __sublinhado__  [tamanho=18]texto[/tamanho]
+   Line breaks: real newlines (e.g. Alt+Enter in Excel/Sheets) or a literal \n
+   This is the LEGACY path — used for plain text (e.g. imported from CSV)
+   that hasn't been touched by the in-app rich-text editor yet. */
+function renderFormattedText(raw){
+  if(!raw) return '';
+  let s = escapeHtml(raw);
+  s = s.replace(/\\n/g, '\n');
+  s = s.replace(/\[tamanho=(\d{1,3})\]([\s\S]*?)\[\/tamanho\]/gi, (m, size, inner)=>{
+    const px = Math.min(48, Math.max(10, parseInt(size,10) || 16));
+    return '<span style="font-size:'+px+'px">'+inner+'</span>';
+  });
+  s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([\s\S]+?)__/g, '<u>$1</u>');
+  s = s.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+
+/* ============================================================
+   RICH TEXT — in-app formatting toolbar (bold, italic, bullet
+   lists, text color, highlight color) using contenteditable +
+   document.execCommand, with a strict allow-list sanitizer so
+   only safe markup is ever stored or rendered.
+   ============================================================ */
+const RTE_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','UL','OL','LI','BR','SPAN','DIV','P']);
+function sanitizeRichHtml(html){
+  const container = document.createElement('div');
+  container.innerHTML = html || '';
+  function clean(node){
+    let unwrapped = false;
+    [...node.childNodes].forEach(child=>{
+      if(child.nodeType === 3) return; // text node: fine as-is
+      if(child.nodeType !== 1){ node.removeChild(child); return; } // comments, etc.
+      const tag = child.tagName;
+      if(!RTE_ALLOWED_TAGS.has(tag)){
+        while(child.firstChild) node.insertBefore(child.firstChild, child);
+        node.removeChild(child);
+        unwrapped = true;
+        return;
+      }
+      [...child.attributes].forEach(attr=>{
+        if(tag === 'SPAN' && attr.name.toLowerCase() === 'style'){
+          const kept = [];
+          attr.value.split(';').forEach(rule=>{
+            const parts = rule.split(':');
+            const prop = (parts[0]||'').trim().toLowerCase();
+            const val = (parts[1]||'').trim();
+            if(val && (prop==='color' || prop==='background-color')) kept.push(prop+':'+val);
+          });
+          if(kept.length) child.setAttribute('style', kept.join(';'));
+          else child.removeAttribute('style');
+        } else {
+          child.removeAttribute(attr.name);
+        }
+      });
+      clean(child);
+    });
+    if(unwrapped) clean(node);
+  }
+  clean(container);
+  return container.innerHTML;
+}
+function looksLikeHtml(str){
+  return /<\/?[a-z][\s\S]*>/i.test(str || '');
+}
+/* Unified display renderer: real HTML (from the rich-text editor) is
+   sanitized and shown as-is; legacy plain text (e.g. CSV imports using
+   the **bold** convention) goes through the old markup renderer. */
+function renderCardContent(raw){
+  if(!raw) return '';
+  return looksLikeHtml(raw) ? sanitizeRichHtml(raw) : renderFormattedText(raw);
+}
+function stripHtmlToText(raw){
+  if(!raw) return '';
+  if(!looksLikeHtml(raw)) return raw;
+  const d = document.createElement('div');
+  d.innerHTML = sanitizeRichHtml(raw);
+  return d.textContent;
+}
+/* Populates a contenteditable field from stored card data, whichever
+   format it's in. */
+function rtePopulate(id, raw){
+  const el = document.getElementById(id);
+  if(!raw){ el.innerHTML = ''; return; }
+  el.innerHTML = looksLikeHtml(raw) ? sanitizeRichHtml(raw) : escapeHtml(raw).replace(/\n/g,'<br>');
+}
+function rteGetSanitized(id){
+  return sanitizeRichHtml(document.getElementById(id).innerHTML);
+}
+function rteIsEmpty(id){
+  return document.getElementById(id).textContent.trim().length === 0;
+}
+let rteSavedRange = null;
+function rteSaveSelection(targetId){
+  const el = document.getElementById(targetId);
+  const sel = window.getSelection();
+  if(sel && sel.rangeCount > 0 && el.contains(sel.anchorNode)){
+    rteSavedRange = sel.getRangeAt(0).cloneRange();
+  }
+}
+function rteCmd(targetId, cmd){
+  document.getElementById(targetId).focus();
+  document.execCommand(cmd, false, null);
+}
+function rteColor(targetId, kind, color){
+  const el = document.getElementById(targetId);
+  el.focus();
+  if(rteSavedRange){
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(rteSavedRange);
+  }
+  try{ document.execCommand('styleWithCSS', false, true); }catch(e){}
+  if(kind === 'fore'){
+    document.execCommand('foreColor', false, color);
+  } else {
+    try{ document.execCommand('hiliteColor', false, color); }catch(e){}
+    try{ document.execCommand('backColor', false, color); }catch(e){}
+  }
+}
+/* Converts rich HTML back into the plain "**bold**", "*italic*", "- item" markup
+   convention for CSV export, so exported files stay human-readable in
+   Excel/Sheets. Text and highlight colors don't have a plain-text
+   equivalent and are intentionally dropped on export. */
+function htmlToPlainMarkup(html){
+  if(!html) return '';
+  if(!looksLikeHtml(html)) return html;
+  const container = document.createElement('div');
+  container.innerHTML = sanitizeRichHtml(html);
+  function walk(node){
+    let out = '';
+    node.childNodes.forEach(child=>{
+      if(child.nodeType === 3){ out += child.textContent; return; }
+      if(child.nodeType !== 1) return;
+      const inner = walk(child);
+      switch(child.tagName){
+        case 'B': case 'STRONG': out += '**' + inner + '**'; break;
+        case 'I': case 'EM': out += '*' + inner + '*'; break;
+        case 'U': out += '__' + inner + '__'; break;
+        case 'BR': out += '\n'; break;
+        case 'LI': out += '- ' + inner + '\n'; break;
+        case 'DIV': case 'P': out += inner + '\n'; break;
+        default: out += inner;
+      }
+    });
+    return out;
+  }
+  return walk(container).replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/* ============================================================
+   DECK DETAIL / CARD MANAGEMENT
+   ============================================================ */
+let currentDeckId = null;
+let editingCardId = null;
+let toggleAnswerValue = true;
+let cardTypeValue = 'vf';
+let selectedTopicView = '__ALL__';
+
+function groupByTopic(deck){
+  const map = new Map();
+  deck.cards.forEach(c=>{
+    const key = (c.topico||'').trim();
+    if(!map.has(key)) map.set(key, []);
+    map.get(key).push(c);
+  });
+  const groups = [...map.entries()].map(([topico, cards])=>({topico, cards}));
+  groups.sort((a,b)=>{
+    if(a.topico === '') return 1;
+    if(b.topico === '') return -1;
+    return a.topico.localeCompare(b.topico, 'pt-BR');
+  });
+  return groups;
+}
+function openDeckDetail(deckId){
+  currentDeckId = deckId;
+  returnToStudyAfterEdit = false;
+  cardFormOpen = false;
+  selectedTopicView = '__ALL__';
+  resetCardForm();
+  renderDeckDetail();
+  showScreen('deckDetail');
+}
+function updateDeckDetailBreadcrumb(){
+  const el = document.getElementById('ddBreadcrumb');
+  if(!el) return;
+  if(returnToStudyAfterEdit){
+    el.textContent = '▶ Voltar ao estudo';
+    el.onclick = backToStudyFromEdit;
+    el.classList.add('breadcrumb-active');
+  } else {
+    el.textContent = '← Todos os baralhos';
+    el.onclick = ()=> showScreen('decks');
+    el.classList.remove('breadcrumb-active');
+  }
+}
+function renderDeckDetail(){
+  const deck = findDeck(currentDeckId);
+  if(!deck){ showScreen('decks'); return; }
+  document.getElementById('ddTitle').textContent = deck.name;
+  const acc = deckAccuracy(deck);
+  const favCount = deck.cards.filter(c=>c.favorito).length;
+  const idle = deckIdleInfo(deck);
+  const idleText = idle.status === 'never' ? 'nunca estudado'
+    : idle.status === 'idle' ? `ocioso há ${idle.days}d`
+    : `estudado há ${idle.days}d`;
+  document.getElementById('ddMeta').textContent = deck.cards.length + ' cartão(ões)'
+    + (favCount ? ' · ' + favCount + ' favoritado(s)' : '')
+    + (acc!==null ? ' · ' + acc + '% de acerto acumulado' : '')
+    + ' · ' + idleText;
+  document.getElementById('ddDirtyBanner').classList.toggle('hidden', !deck.dirty);
+  document.getElementById('ddStudyBtn').onclick = ()=> startStudy(deck.id);
+  document.getElementById('ddFavBtn').onclick = ()=> startFavoritesStudy(deck.id);
+  updateTopicSuggestions();
+  updateFonteSuggestions();
+  updateDeckDetailBreadcrumb();
+  renderEvolution();
+
+  const table = document.getElementById('cardTable');
+  if(!deck.cards.length){
+    document.getElementById('topicSelector').innerHTML = '';
+    document.getElementById('topicScopeBar').classList.add('hidden');
+    table.innerHTML = `<div class="empty-state" style="border:none; padding:24px 4px;">Nenhum cartão ainda. Use o botão acima para adicionar.</div>`;
+    return;
+  }
+
+  const groups = groupByTopic(deck);
+  // Fall back to "all" if the previously-selected topic no longer has any cards.
+  if(selectedTopicView !== '__ALL__' && !groups.some(g => g.topico === selectedTopicView)){
+    selectedTopicView = '__ALL__';
+  }
+  renderTopicSelector(deck, groups);
+
+  const scopedCards = selectedTopicView === '__ALL__'
+    ? deck.cards
+    : deck.cards.filter(c => (c.topico||'').trim() === selectedTopicView);
+  let sOk=0, sTot=0;
+  scopedCards.forEach(c=>{ sOk += c.stats.acertos; sTot += c.stats.acertos + c.stats.erros; });
+  const scopedAcc = sTot ? Math.round((sOk/sTot)*100) : null;
+  const scopedLabel = selectedTopicView === '__ALL__' ? 'Todos os cartões' : (selectedTopicView || 'Sem tópico');
+
+  document.getElementById('topicScopeBar').classList.remove('hidden');
+  document.getElementById('scopeTitle').textContent = scopedLabel;
+  document.getElementById('scopeMeta').textContent = scopedCards.length + ' cartão(ões)' + (scopedAcc!==null ? ' · '+scopedAcc+'% de acerto' : '');
+  document.getElementById('scopeStudyBtn').onclick = selectedTopicView === '__ALL__'
+    ? ()=> startStudy(deck.id)
+    : ()=> startStudy(deck.id, selectedTopicView);
+
+  table.innerHTML = '';
+  scopedCards.forEach(c => table.appendChild(renderCardRow(c)));
+}
+function renderTopicSelector(deck, groups){
+  const wrap = document.getElementById('topicSelector');
+  wrap.innerHTML = '';
+  wrap.appendChild(makeTopicButton('Todos os cartões', deck.cards.length, deckAccuracy(deck), '__ALL__'));
+  groups.forEach(g=>{
+    let ok=0, tot=0;
+    g.cards.forEach(c=>{ ok += c.stats.acertos; tot += c.stats.acertos + c.stats.erros; });
+    const gAcc = tot ? Math.round((ok/tot)*100) : null;
+    wrap.appendChild(makeTopicButton(g.topico || 'Sem tópico', g.cards.length, gAcc, g.topico));
+  });
+}
+function makeTopicButton(label, count, acc, value){
+  const pillClass = acc===null ? 'pill-neutral' : acc>=70 ? 'pill-good' : 'pill-bad';
+  const pillText = acc===null ? 'sem dados' : acc+'% acerto';
+  const div = document.createElement('div');
+  div.className = 'deck-card topic-btn' + (selectedTopicView===value ? ' topic-btn-active' : '');
+  div.onclick = ()=> selectTopicView(value);
+  div.innerHTML = `
+    <div class="deck-head">
+      <div class="deck-name">${escapeHtml(label)}</div>
+      <div class="deck-acc-pill ${pillClass}">${pillText}</div>
+    </div>
+    <div class="deck-meta">${count} cartão(ões)</div>`;
+  return div;
+}
+function selectTopicView(value){
+  selectedTopicView = value;
+  renderDeckDetail();
+}
+function renderCardRow(c){
+  const row = document.createElement('div');
+  row.className = 'card-row';
+  const isFv = c.tipo === 'fv';
+  const tagHtml = isFv
+    ? '<span class="tag tag-fv">F/V</span>'
+    : `<span class="tag ${c.resposta?'tag-v':'tag-f'}">${c.resposta?'V':'F'}</span>`;
+  const fonteHtml = c.fonte ? `<span class="tag tag-fonte">${escapeHtml(c.fonte)}</span>` : '';
+  const fvPreview = (isFv && c.resposta)
+    ? `<div class="fv-answer-preview">↳ ${(()=>{ const t=stripHtmlToText(c.resposta); return escapeHtml(t.length>90 ? t.slice(0,90)+'…' : t); })()}</div>`
+    : '';
+  row.innerHTML = `
+    <div class="q">${renderCardContent(c.pergunta)}
+      ${tagHtml}
+      ${fonteHtml}
+      ${fvPreview}
+    </div>
+    <div class="row-actions">
+      <button class="icon-btn ${c.favorito?'active-fav':''}" title="Favoritar" onclick="toggleFavoriteRow('${c.id}')">${c.favorito?'★':'☆'}</button>
+      <button class="icon-btn" title="Editar" onclick="editCard('${c.id}')">✎</button>
+      <button class="icon-btn" title="Excluir" onclick="deleteCard('${c.id}')">🗑</button>
+    </div>`;
+  return row;
+}
+
+function setAnswerToggle(val){
+  toggleAnswerValue = val;
+  document.querySelectorAll('.answer-toggle button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.answer-toggle .sel-'+val).classList.add('active');
+}
+function setCardType(type){
+  cardTypeValue = type === 'fv' ? 'fv' : 'vf';
+  document.querySelectorAll('.type-toggle button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.type-toggle .type-'+cardTypeValue).classList.add('active');
+  document.getElementById('vfAnswerBlock').classList.toggle('hidden', cardTypeValue==='fv');
+  document.getElementById('fvAnswerBlock').classList.toggle('hidden', cardTypeValue!=='fv');
+  document.getElementById('cardQuestionLabel').textContent = cardTypeValue==='fv' ? 'Pergunta (frente do cartão)' : 'Pergunta (afirmação a julgar)';
+}
+function updateTopicSuggestions(){
+  const deck = findDeck(currentDeckId);
+  const list = document.getElementById('topicSuggestions');
+  if(!deck || !list) return;
+  const topics = [...new Set(deck.cards.map(c=>(c.topico||'').trim()).filter(Boolean))].sort();
+  list.innerHTML = topics.map(t=>`<option value="${escapeHtml(t)}"></option>`).join('');
+}
+function updateFonteSuggestions(){
+  const deck = findDeck(currentDeckId);
+  const list = document.getElementById('fonteSuggestions');
+  if(!list) return;
+  const usadas = deck ? deck.cards.map(c=>(c.fonte||'').trim()).filter(Boolean) : [];
+  const todas = [...new Set([...FONTE_SUGESTOES, ...usadas])];
+  list.innerHTML = todas.map(t=>`<option value="${escapeHtml(t)}"></option>`).join('');
+}
+function updateEvoTopicFilter(){
+  const deck = findDeck(currentDeckId);
+  const sel = document.getElementById('evoTopicFilter');
+  if(!deck || !sel) return;
+  const topics = [...new Set(deck.cards.map(c=>(c.topico||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="__all__">Todos os tópicos</option>' + topics.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  if([...sel.options].some(o=>o.value===prevVal)) sel.value = prevVal;
+}
+function renderEvolution(){
+  const deck = findDeck(currentDeckId);
+  if(!deck) return;
+  updateEvoTopicFilter();
+  const sel = document.getElementById('evoTopicFilter');
+  const filter = sel.value || '__all__';
+  const days = getDailyAccuracy(deck.id, filter);
+
+  const todayStr = localDateStr();
+  const y1 = new Date(); y1.setDate(y1.getDate()-1);
+  const y7 = new Date(); y7.setDate(y7.getDate()-7);
+  const find = ds => days.find(x=>x.date===ds);
+  const mk = (label, rec) => `<div class="stat-box"><div class="num">${rec ? rec.pct+'%' : '—'}</div><div class="lbl">${label}</div></div>`;
+  document.getElementById('evoQuickStats').innerHTML =
+    mk('Hoje', find(todayStr)) + mk('Ontem', find(localDateStr(y1))) + mk('Há 7 dias', find(localDateStr(y7)));
+
+  const list = document.getElementById('evoList');
+  if(!days.length){
+    list.innerHTML = '<div class="empty-state">Nenhum registro ainda para este filtro. Estude este baralho para começar a acompanhar sua evolução.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  days.forEach((d, i)=>{
+    const prev = days[i+1]; // chronologically earlier entry, since sorted most-recent-first
+    let deltaHtml = '';
+    if(prev){
+      const diff = d.pct - prev.pct;
+      if(diff !== 0){
+        deltaHtml = `<span class="evo-delta ${diff>0?'ok':'no'}">${diff>0?'+':''}${diff}%</span>`;
+      }
+    }
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-head"><span class="name">${formatDateLabel(d.date)}</span><span class="pct">${d.pct}%${deltaHtml} · ${d.tot} revis${d.tot===1?'ão':'ões'}</span></div>
+      <div class="bar-track"><div class="bar-ok" style="width:${d.pct}%"></div><div class="bar-no" style="width:${100-d.pct}%"></div></div>`;
+    list.appendChild(row);
+  });
+}
+
+/* ============================================================
+   HISTÓRICO screen — cross-deck, day-by-day study history
+   ============================================================ */
+function getGlobalDailyAccuracy(){
+  const byDate = {};
+  DATA.dailyStats.forEach(e=>{
+    if(!byDate[e.date]) byDate[e.date] = {ok:0, tot:0};
+    byDate[e.date].ok += e.ok; byDate[e.date].tot += e.tot;
+  });
+  return Object.entries(byDate)
+    .map(([date,v])=>({date, ok:v.ok, tot:v.tot, pct: Math.round((v.ok/v.tot)*100)}))
+    .sort((a,b)=> b.date.localeCompare(a.date));
+}
+function renderHistOverallStats(){
+  const dayCount = new Set(DATA.dailyStats.map(e=>e.date)).size;
+  const totalReviews = DATA.dailyStats.reduce((s,e)=>s+e.tot,0);
+  const totalOk = DATA.dailyStats.reduce((s,e)=>s+e.ok,0);
+  const overallAcc = totalReviews ? Math.round((totalOk/totalReviews)*100) : null;
+  document.getElementById('histOverallStats').innerHTML = `
+    <div class="stat-box"><div class="num">${dayCount}</div><div class="lbl">dias estudados</div></div>
+    <div class="stat-box"><div class="num">${DATA.sessionLog.length}</div><div class="lbl">sessões registradas</div></div>
+    <div class="stat-box"><div class="num">${overallAcc!==null ? overallAcc+'%' : '—'}</div><div class="lbl">acerto geral</div></div>`;
+}
+function renderHistGlobalTimeline(){
+  const days = getGlobalDailyAccuracy();
+  const wrap = document.getElementById('histGlobalTimeline');
+  if(!days.length){
+    wrap.innerHTML = '<div class="empty-state" style="border:none; padding:16px 4px;">Nenhum estudo registrado ainda. Estude um baralho para começar a preencher seu histórico.</div>';
+    return;
+  }
+  const shown = days.slice(0, 30);
+  wrap.innerHTML = '';
+  shown.forEach((d,i)=>{
+    const prev = shown[i+1];
+    let deltaHtml = '';
+    if(prev){
+      const diff = d.pct - prev.pct;
+      if(diff !== 0) deltaHtml = `<span class="evo-delta ${diff>0?'ok':'no'}">${diff>0?'+':''}${diff}%</span>`;
+    }
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-head"><span class="name">${formatDateLabel(d.date)}</span><span class="pct">${d.pct}%${deltaHtml} · ${d.tot} revis${d.tot===1?'ão':'ões'}</span></div>
+      <div class="bar-track"><div class="bar-ok" style="width:${d.pct}%"></div><div class="bar-no" style="width:${100-d.pct}%"></div></div>`;
+    wrap.appendChild(row);
+  });
+  if(days.length > 30){
+    const note = document.createElement('div');
+    note.className = 'section-sub';
+    note.style.textAlign = 'center';
+    note.textContent = 'Mostrando os 30 dias mais recentes de ' + days.length + '.';
+    wrap.appendChild(note);
+  }
+}
+function renderHistSessionList(){
+  const wrap = document.getElementById('histSessionList');
+  if(!DATA.sessionLog.length){
+    wrap.innerHTML = '<div class="empty-state" style="border:none; padding:16px 4px;">Nenhuma sessão de estudo registrada ainda.</div>';
+    return;
+  }
+  const recent = DATA.sessionLog.slice().reverse().slice(0, 30);
+  wrap.innerHTML = '';
+  recent.forEach(s=>{
+    const dt = new Date(s.ts);
+    const dateLabel = formatDateLabel(localDateStr(dt));
+    const timeLabel = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+    const row = document.createElement('div');
+    row.className = 'card-row';
+    row.innerHTML = `
+      <div class="q">
+        <b>${escapeHtml(s.label)}</b><br>
+        <span style="color:var(--ink-faint); font-size:11.5px;">${dateLabel} às ${timeLabel} · ${s.ok+s.no} cartão(ões) · ${formatDuration(s.durationSec)}</span>
+      </div>
+      <div class="row-actions"><span class="tag ${s.pct>=70?'tag-v':'tag-f'}">${s.pct}%</span></div>`;
+    wrap.appendChild(row);
+  });
+}
+function renderHistDeckList(){
+  const wrap = document.getElementById('histDeckList');
+  const decksWithHistory = DATA.decks.filter(d => DATA.dailyStats.some(e=>e.deckId===d.id));
+  if(!decksWithHistory.length){
+    wrap.innerHTML = '<div class="empty-state" style="border:none; padding:16px 4px;">Nenhum baralho estudado ainda.</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  decksWithHistory
+    .sort((a,b)=> (deckLastStudied(b.id)||'').localeCompare(deckLastStudied(a.id)||''))
+    .forEach(deck=>{
+      const acc = deckAccuracy(deck);
+      const last = deckLastStudied(deck.id);
+      const pillClass = acc===null ? 'pill-neutral' : acc>=70 ? 'pill-good' : 'pill-bad';
+      const div = document.createElement('div');
+      div.className = 'deck-card';
+      div.onclick = ()=> openDeckDetail(deck.id);
+      div.innerHTML = `
+        <div class="deck-head">
+          <div class="deck-name">${escapeHtml(deck.name)}</div>
+          <div class="deck-acc-pill ${pillClass}">${acc!==null ? acc+'% acerto' : 'sem dados'}</div>
+        </div>
+        <div class="deck-meta">último estudo: ${last ? formatDateLabel(last) : '—'}</div>`;
+      wrap.appendChild(div);
+    });
+}
+function renderHistory(){
+  renderHistOverallStats();
+  renderHistGlobalTimeline();
+  renderHistSessionList();
+  renderHistDeckList();
+}
+
+function updateCardFormVisibility(){
+  document.getElementById('cardFormPanel').classList.toggle('hidden', !cardFormOpen);
+  document.getElementById('cardFormToggleBtn').classList.toggle('hidden', cardFormOpen);
+}
+function openCardForm(){
+  resetCardForm();
+  if(selectedTopicView && selectedTopicView !== '__ALL__'){
+    document.getElementById('cardTopicInput').value = selectedTopicView;
+  }
+  cardFormOpen = true;
+  updateCardFormVisibility();
+  document.getElementById('cardQuestionInput').focus();
+}
+function closeCardForm(){
+  resetCardForm();
+  cardFormOpen = false;
+  updateCardFormVisibility();
+}
+function resetCardForm(){
+  editingCardId = null;
+  document.getElementById('cardQuestionInput').innerHTML = '';
+  document.getElementById('cardExplicInput').innerHTML = '';
+  document.getElementById('cardTopicInput').value = '';
+  document.getElementById('cardFonteInput').value = '';
+  document.getElementById('cardFvAnswerInput').innerHTML = '';
+  document.getElementById('cardFormLabel').textContent = 'Adicionar cartão';
+  setCardType('vf');
+  setAnswerToggle(true);
+}
+function editCard(cardId){
+  const deck = findDeck(currentDeckId);
+  const card = deck.cards.find(c=>c.id===cardId);
+  if(!card) return;
+  editingCardId = cardId;
+  cardFormOpen = true;
+  updateCardFormVisibility();
+  rtePopulate('cardQuestionInput', card.pergunta);
+  rtePopulate('cardExplicInput', card.explicacao);
+  document.getElementById('cardTopicInput').value = card.topico || '';
+  document.getElementById('cardFonteInput').value = card.fonte || '';
+  setCardType(card.tipo === 'fv' ? 'fv' : 'vf');
+  if(card.tipo === 'fv'){
+    rtePopulate('cardFvAnswerInput', card.resposta || '');
+  } else {
+    setAnswerToggle(!!card.resposta);
+  }
+  document.getElementById('cardFormLabel').textContent = 'Editando cartão';
+  document.getElementById('cardQuestionInput').scrollIntoView({behavior:'smooth', block:'center'});
+}
+function saveCardForm(){
+  if(rteIsEmpty('cardQuestionInput')){ toast('Escreva a pergunta / afirmação.'); return; }
+  const q = rteGetSanitized('cardQuestionInput');
+  const ex = rteIsEmpty('cardExplicInput') ? '' : rteGetSanitized('cardExplicInput');
+  const tp = document.getElementById('cardTopicInput').value.trim();
+  const fo = document.getElementById('cardFonteInput').value.trim();
+  let resposta;
+  if(cardTypeValue === 'fv'){
+    if(rteIsEmpty('cardFvAnswerInput')){ toast('Escreva a resposta que aparece no verso do cartão.'); return; }
+    resposta = rteGetSanitized('cardFvAnswerInput');
+  } else {
+    resposta = toggleAnswerValue;
+  }
+  const deck = findDeck(currentDeckId);
+  const wasEditing = !!editingCardId;
+  if(editingCardId){
+    const card = deck.cards.find(c=>c.id===editingCardId);
+    card.pergunta = q; card.resposta = resposta; card.explicacao = ex; card.topico = tp; card.tipo = cardTypeValue; card.fonte = fo;
+    toast('Cartão atualizado.');
+  } else {
+    deck.cards.push(newCard(q, resposta, ex, tp, cardTypeValue, fo));
+    toast('Cartão adicionado.');
+  }
+  markDeckDirty(deck.id);
+  saveData();
+  resetCardForm();
+  if(wasEditing){ cardFormOpen = false; updateCardFormVisibility(); }
+  renderDeckDetail();
+}
+function deleteCard(cardId){
+  const deck = findDeck(currentDeckId);
+  if(!confirm('Excluir este cartão?')) return;
+  deck.cards = deck.cards.filter(c=>c.id!==cardId);
+  markDeckDirty(deck.id);
+  saveData();
+  renderDeckDetail();
+}
+function toggleFavoriteRow(cardId){
+  toggleFavorite(cardId);
+  renderDeckDetail();
+}
+function deleteDeck(deckId){
+  const deck = findDeck(deckId);
+  if(!deck) return;
+  if(!confirm(`Excluir o baralho "${deck.name}" e todos os seus cartões?`)) return;
+  DATA.decks = DATA.decks.filter(d=>d.id!==deckId);
+  saveData();
+  showScreen('decks');
+}
+function normalizeForDuplicateCheck(s){
+  return stripHtmlToText(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
+}
+/* Detects cards with the same question text (case/whitespace-insensitive)
+   within a deck. When duplicates are found, keeps whichever copy has more
+   review history (acertos+erros) so study progress isn't lost; ties keep
+   the one encountered first. */
+function removeDuplicateCards(deckId){
+  const deck = findDeck(deckId);
+  if(!deck || !deck.cards.length) { toast('Este baralho não tem cartões.'); return; }
+
+  const keepByKey = new Map(); // normalized pergunta -> card currently kept
+  const toRemove = new Set();
+  deck.cards.forEach(c=>{
+    const key = normalizeForDuplicateCheck(c.pergunta);
+    if(!key) return;
+    const existing = keepByKey.get(key);
+    if(!existing){ keepByKey.set(key, c); return; }
+    const existingActivity = existing.stats.acertos + existing.stats.erros;
+    const currentActivity = c.stats.acertos + c.stats.erros;
+    if(currentActivity > existingActivity){
+      toRemove.add(existing.id);
+      keepByKey.set(key, c);
+    } else {
+      toRemove.add(c.id);
+    }
+  });
+
+  if(!toRemove.size){ toast('Nenhum cartão duplicado encontrado neste baralho.'); return; }
+  if(!confirm(`Encontrado(s) ${toRemove.size} cartão(ões) duplicado(s) (mesma pergunta). Remover, mantendo a cópia com mais histórico de estudo?`)) return;
+
+  deck.cards = deck.cards.filter(c=>!toRemove.has(c.id));
+  markDeckDirty(deck.id);
+  saveData();
+  renderDeckDetail();
+  toast(`${toRemove.size} cartão(ões) duplicado(s) removido(s).`);
+}
+
+/* ============================================================
+   STUDY MODE — repetition queue
+   Correct answers permanently leave the queue ("dominado").
+   Wrong answers go back to the end of the (now shrinking) queue,
+   so a repeatedly-missed card naturally comes back at shorter and
+   shorter intervals as the session progresses.
+
+   Sessions are now generic: a session is just a list of
+   {card, deckId} items — this lets "estudar baralho", "estudar
+   tópico" and "treinar favoritos" (single deck or across all
+   decks) all share the same engine.
+   ============================================================ */
+let studyLabel = '';
+let studyCardIndex = {};      // cardId -> {card, deckId}
+let studyQueue = [];          // array of card ids still pending this session
+let studyTotal = 0;           // fixed size at session start, for the progress bar
+let studyFlipped = false;
+let studyGraded = false;
+let sessionOk = 0, sessionNo = 0;
+let sessionMisses = {};       // cardId -> times missed this session
+let cardShownAt = null;       // timestamp the current card's front was shown
+let timeRecordedThisView = false;
+let sessionLogged = false;    // guards against double-logging the same session
+let studyReplay = null;       // closure that restarts the current session type
+let returnToStudyAfterEdit = false;
+let isDailyChallengeSession = false;
+
+// ---- session timer ----
+let studyTimerInterval = null;
+let studyStartTime = null;
+function startStudyTimer(){
+  studyStartTime = Date.now();
+  updateStudyTimerDisplay();
+  studyTimerInterval = setInterval(updateStudyTimerDisplay, 1000);
+}
+function stopStudyTimer(){
+  if(studyTimerInterval){ clearInterval(studyTimerInterval); studyTimerInterval = null; }
+}
+function getStudyElapsedSeconds(){
+  return studyStartTime ? Math.floor((Date.now()-studyStartTime)/1000) : 0;
+}
+function formatDuration(totalSeconds){
+  const h = Math.floor(totalSeconds/3600);
+  const m = Math.floor((totalSeconds%3600)/60);
+  const s = totalSeconds%60;
+  const mm = String(m).padStart(2,'0'), ss = String(s).padStart(2,'0');
+  return h>0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+function updateStudyTimerDisplay(){
+  const el = document.getElementById('studyTimer');
+  if(el) el.textContent = '⏱ ' + formatDuration(getStudyElapsedSeconds());
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+/* items: array of {card, deckId} */
+function startStudySession(items, label){
+  logSessionIfNeeded(); // flush any unfinished previous session before switching
+  studyCardIndex = {};
+  items.forEach(it => studyCardIndex[it.card.id] = it);
+  studyQueue = shuffle(items.map(it => it.card.id));
+  studyTotal = studyQueue.length;
+  studyLabel = label;
+  sessionOk = 0; sessionNo = 0;
+  sessionMisses = {};
+  sessionLogged = false;
+  stopStudyTimer(); studyStartTime = null;
+  queuePanelCollapsed = false;
+  document.getElementById('queuePanelList').classList.remove('collapsed');
+  document.getElementById('queuePanelToggleIcon').textContent = '▾';
+  showScreen('study');
+  document.getElementById('studyDeckName').textContent = label;
+  if(!items.length){
+    document.getElementById('studyActive').classList.add('hidden');
+    document.getElementById('studyEnd').classList.add('hidden');
+    document.getElementById('studyEmpty').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('studyEmpty').classList.add('hidden');
+  document.getElementById('studyActive').classList.remove('hidden');
+  document.getElementById('studyEnd').classList.add('hidden');
+  updateBoostBanner();
+  updateStreakChip();
+  startStudyTimer();
+  renderStudyCard();
+}
+function startStudy(deckId, topico){
+  const deck = findDeck(deckId);
+  if(!deck) return;
+  currentDeckId = deckId;
+  isDailyChallengeSession = false;
+  const hasTopicFilter = (topico !== undefined && topico !== null);
+  const cards = hasTopicFilter ? deck.cards.filter(c => (c.topico||'').trim() === topico) : deck.cards;
+  const items = cards.map(c => ({card:c, deckId}));
+  const label = hasTopicFilter ? (deck.name + ' · ' + (topico || 'Sem tópico')) : deck.name;
+  studyReplay = ()=> startStudy(deckId, topico);
+  startStudySession(items, label);
+}
+function collectFavoriteCards(scopeDeckId){
+  const decks = scopeDeckId ? [findDeck(scopeDeckId)] : DATA.decks;
+  const items = [];
+  decks.forEach(d=>{ if(!d) return; d.cards.forEach(c=>{ if(c.favorito) items.push({card:c, deckId:d.id}); }); });
+  return items;
+}
+function startFavoritesStudy(scopeDeckId){
+  isDailyChallengeSession = false;
+  const items = collectFavoriteCards(scopeDeckId);
+  if(!items.length){
+    toast(scopeDeckId ? 'Nenhum cartão favoritado neste baralho ainda.' : 'Nenhum cartão favoritado ainda. Toque na estrela ☆ em um cartão para favoritá-lo.');
+    return;
+  }
+  const label = scopeDeckId ? (findDeck(scopeDeckId).name + ' · ★ Favoritos') : '★ Favoritos (todos os baralhos)';
+  studyReplay = ()=> startFavoritesStudy(scopeDeckId);
+  startStudySession(items, label);
+}
+
+/* ---- daily random challenge ----
+   20 cards drawn fresh each calendar day, prioritized by an algorithm
+   that favors cards you've missed most and cards not reviewed in the
+   longest time; if that pool is too small, it tops up with favorited
+   cards, and finally with any remaining cards at random. Can be
+   replayed as many times as you like the same day, but each replay's
+   correct-answer value drops by 1 XP (minimum 1). */
+const DAILY_CHALLENGE_SIZE = 20;
+function daysSinceCardReview(card){
+  if(!card.stats.ultimaRevisao) return Infinity;
+  return (Date.now() - new Date(card.stats.ultimaRevisao).getTime()) / 86400000;
+}
+function cardNeedScore(card){
+  const days = daysSinceCardReview(card);
+  return card.stats.erros * 50 + (days === Infinity ? 100000 : days);
+}
+function buildSmartDailySelection(size){
+  const allCards = [];
+  DATA.decks.forEach(d => d.cards.forEach(c => allCards.push({card:c, deckId:d.id})));
+  if(!allCards.length) return [];
+
+  const selected = [];
+  const selectedIds = new Set();
+  function addFrom(list){
+    for(const item of list){
+      if(selected.length >= size) break;
+      if(selectedIds.has(item.card.id)) continue;
+      selected.push(item);
+      selectedIds.add(item.card.id);
+    }
+  }
+
+  // Stage A: cards ever missed, or never studied — ranked by how much they need review
+  addFrom(
+    allCards.filter(it => it.card.stats.erros > 0 || !it.card.stats.ultimaRevisao)
+            .sort((a,b) => cardNeedScore(b.card) - cardNeedScore(a.card))
+  );
+  // Stage B: anything else, ranked by pure staleness (longest since reviewed first)
+  if(selected.length < size){
+    addFrom(
+      allCards.filter(it => !selectedIds.has(it.card.id))
+              .sort((a,b) => {
+                const da = daysSinceCardReview(a.card), db = daysSinceCardReview(b.card);
+                return (db===Infinity?1:db) - (da===Infinity?1:da);
+              })
+    );
+  }
+  // Stage C: favorited cards not yet included
+  if(selected.length < size){
+    addFrom(allCards.filter(it => it.card.favorito && !selectedIds.has(it.card.id)));
+  }
+  // Stage D: final fallback — whatever's left, shuffled
+  if(selected.length < size){
+    addFrom(shuffle(allCards.filter(it => !selectedIds.has(it.card.id))));
+  }
+  return selected.slice(0, size);
+}
+function ensureDailyChallenge(){
+  const today = localDateStr();
+  if(DATA.dailyChallenge.date === today && DATA.dailyChallenge.cardIds.length) return;
+  const chosen = buildSmartDailySelection(DAILY_CHALLENGE_SIZE);
+  DATA.dailyChallenge = { date: today, cardIds: chosen.map(it=>it.card.id), timesStarted: 0 };
+  saveData();
+}
+/* Value per correct answer for the CURRENT run-through: 3 the first time
+   today, 2 the second, 1 from the third time onward. */
+function getDailyChallengeValue(){
+  return Math.max(1, 3 - (DATA.dailyChallenge.timesStarted||0));
+}
+let dailyChallengeCorrectValue = 3;
+function startDailyChallenge(){
+  ensureDailyChallenge();
+  const items = DATA.dailyChallenge.cardIds
+    .map(id => { const owner = findCardOwner(id); return owner ? {card:owner.card, deckId:owner.deckId} : null; })
+    .filter(Boolean);
+  if(!items.length){
+    toast('Nenhum cartão disponível ainda para o sorteio de hoje. Crie ou importe baralhos primeiro.');
+    return;
+  }
+  dailyChallengeCorrectValue = getDailyChallengeValue();
+  DATA.dailyChallenge.timesStarted = (DATA.dailyChallenge.timesStarted||0) + 1;
+  saveData();
+  isDailyChallengeSession = true;
+  studyReplay = ()=> startDailyChallenge();
+  startStudySession(items, 'Sorteio do Dia · +' + dailyChallengeCorrectValue + ' XP/acerto');
+}
+function restartStudy(){ if(studyReplay) studyReplay(); }
+function logSessionIfNeeded(){
+  if(sessionLogged) return;
+  const total = sessionOk + sessionNo;
+  if(total === 0) return;
+  DATA.sessionLog.push({
+    ts: new Date().toISOString(),
+    label: studyLabel,
+    ok: sessionOk,
+    no: sessionNo,
+    pct: Math.round((sessionOk/total)*100),
+    durationSec: getStudyElapsedSeconds()
+  });
+  if(DATA.sessionLog.length > 300) DATA.sessionLog.shift();
+  sessionLogged = true;
+  saveData();
+}
+function exitStudy(){
+  logSessionIfNeeded();
+  stopStudyTimer();
+  studyStartTime = null;
+  studyQueue = [];
+  studyCardIndex = {};
+  studyReplay = null;
+  showScreen('decks');
+}
+
+function currentStudyCard(){
+  if(!studyQueue.length) return null;
+  const entry = studyCardIndex[studyQueue[0]];
+  return entry ? entry.card : null;
+}
+function currentStudyCardDeckId(){
+  if(!studyQueue.length) return null;
+  const entry = studyCardIndex[studyQueue[0]];
+  return entry ? entry.deckId : null;
+}
+function updateStudyFavoriteIcon(card){
+  const btn = document.getElementById('studyFavBtn');
+  const badge = document.getElementById('studyFavBadge');
+  const fav = !!(card && card.favorito);
+  btn.textContent = fav ? '★' : '☆';
+  btn.classList.toggle('active-fav', fav);
+  badge.classList.toggle('hidden', !fav);
+}
+function toggleFavoriteInStudy(){
+  const card = currentStudyCard();
+  if(!card) return;
+  toggleFavorite(card.id);
+  updateStudyFavoriteIcon(card);
+}
+function editCardFromStudy(){
+  const card = currentStudyCard();
+  if(!card) return;
+  const deckId = currentStudyCardDeckId();
+  returnToStudyAfterEdit = true;
+  currentDeckId = deckId;
+  renderDeckDetail();
+  showScreen('deckDetail');
+  editCard(card.id);
+  toast('Corrija o cartão e toque em "▶ Voltar ao estudo" no topo.');
+}
+function backToStudyFromEdit(){
+  returnToStudyAfterEdit = false;
+  showScreen('study');
+  renderStudyCard();
+}
+
+function renderStudyCard(){
+  const card = currentStudyCard();
+  const fc = document.getElementById('flashcard');
+  fc.classList.remove('fly-left','fly-right','flipped','dragging');
+  fc.style.transform = '';
+  studyFlipped = false;
+  studyGraded = false;
+
+  renderQueuePanel();
+  const mastered = studyTotal - studyQueue.length;
+
+  if(!card){
+    stopStudyTimer();
+    logSessionIfNeeded();
+    document.getElementById('studyActive').classList.add('hidden');
+    document.getElementById('studyEnd').classList.remove('hidden');
+    const total = sessionOk + sessionNo;
+    document.getElementById('endAccuracy').textContent = total ? Math.round((sessionOk/total)*100)+'%' : '—';
+    document.getElementById('endTimeSpent').textContent = studyTotal ? 'Tempo de estudo: ' + formatDuration(getStudyElapsedSeconds()) : '';
+    renderToughCards();
+    return;
+  }
+
+  document.getElementById('frontDeckLabel').textContent = studyLabel;
+  document.getElementById('frontQuestion').innerHTML = renderCardContent(card.pergunta);
+  updateStudyFavoriteIcon(card);
+
+  const sourceTag = document.getElementById('frontSourceTag');
+  if(card.fonte){
+    sourceTag.textContent = card.fonte;
+    sourceTag.classList.remove('hidden');
+  } else {
+    sourceTag.classList.add('hidden');
+  }
+
+  cardShownAt = Date.now();
+  timeRecordedThisView = false;
+  const lastTimeEl = document.getElementById('frontLastTime');
+  if(card.stats.ultimoTempoRespostaSeg != null){
+    lastTimeEl.textContent = '⏱ última vez: ' + formatDuration(card.stats.ultimoTempoRespostaSeg);
+    lastTimeEl.classList.remove('hidden');
+  } else {
+    lastTimeEl.classList.add('hidden');
+  }
+
+  const backStamp = document.getElementById('backStamp');
+  const backAnswerText = document.getElementById('backAnswerText');
+  if(card.tipo === 'fv'){
+    backStamp.classList.add('hidden');
+    backAnswerText.classList.remove('hidden');
+    backAnswerText.innerHTML = renderCardContent(card.resposta || '(sem resposta cadastrada)');
+  } else {
+    backAnswerText.classList.add('hidden');
+    backStamp.classList.remove('hidden');
+    backStamp.textContent = card.resposta ? 'VERDADEIRO' : 'FALSO';
+    backStamp.className = 'card-answer-stamp ' + (card.resposta ? 'stamp-v':'stamp-f');
+  }
+  document.getElementById('backExplic').innerHTML = renderCardContent(card.explicacao || '');
+  document.getElementById('gradeOkBtn').classList.remove('graded');
+  document.getElementById('gradeWrongBtn').classList.remove('graded');
+
+  const misses = sessionMisses[card.id] || 0;
+  const badge = document.getElementById('repeatBadge');
+  if(misses > 0){
+    badge.textContent = (misses+1) + 'ª tentativa';
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+  const baseHint = card.tipo === 'fv' ? 'responda mentalmente · toque para virar' : 'toque para virar · arraste para pular';
+  document.getElementById('frontHint').textContent = misses > 0
+    ? 'já errado ' + misses + 'x nesta sessão · toque para virar'
+    : baseHint;
+
+  const pct = Math.round((mastered/studyTotal)*100);
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('queueLine').textContent = 'restam ' + studyQueue.length + ' · dominados ' + mastered;
+  document.getElementById('sessOk').textContent = '✓ '+sessionOk;
+  document.getElementById('sessNo').textContent = '✕ '+sessionNo;
+}
+function renderToughCards(){
+  const box = document.getElementById('toughCardsBox');
+  const entries = Object.entries(sessionMisses).filter(([id,n])=>n>0).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(!entries.length){ box.innerHTML = ''; return; }
+  let html = '<div class="tough-list"><div class="th">Mais repetidos nesta sessão</div>';
+  entries.forEach(([id,n])=>{
+    const entry = studyCardIndex[id];
+    if(!entry) return;
+    const plain = stripHtmlToText(entry.card.pergunta);
+    const label = plain.length > 60 ? plain.slice(0,60)+'…' : plain;
+    html += `<div class="ti"><span>${escapeHtml(label)}</span><span class="cnt">${n}x errado</span></div>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+function flipCard(){
+  const card = currentStudyCard();
+  if(!card) return;
+  studyFlipped = !studyFlipped;
+  document.getElementById('flashcard').classList.toggle('flipped', studyFlipped);
+  if(studyFlipped && !timeRecordedThisView && cardShownAt){
+    card.stats.ultimoTempoRespostaSeg = Math.round((Date.now()-cardShownAt)/1000);
+    timeRecordedThisView = true;
+    saveData();
+  }
+}
+function gradeCard(correct){
+  if(studyGraded) return;
+  const card = currentStudyCard();
+  if(!card) return;
+  const ownerDeckId = currentStudyCardDeckId();
+  studyGraded = true;
+  if(correct){
+    card.stats.acertos++; sessionOk++;
+    document.getElementById('gradeWrongBtn').classList.add('graded');
+  } else {
+    card.stats.erros++; sessionNo++;
+    sessionMisses[card.id] = (sessionMisses[card.id] || 0) + 1;
+    document.getElementById('gradeOkBtn').classList.add('graded');
+  }
+  card.stats.ultimoResultado = correct ? 'certo':'errado';
+  card.stats.ultimaRevisao = new Date().toISOString();
+  recordAttempt(ownerDeckId, card.topico, correct);
+
+  // ---- points: BOOST overrides everything else while active ----
+  const baseValue = isDailyChallengeSession ? dailyChallengeCorrectValue : 1;
+  const wasBoostActive = DATA.boost.active;
+  const xpDelta = correct ? (wasBoostActive ? 2 : baseValue) : -1;
+  if(wasBoostActive) DATA.boostStats.pointsEarned += xpDelta;
+  awardXp(xpDelta);
+  showXpFloat(xpDelta, wasBoostActive);
+
+  // ---- global streak (consecutive correct answers, any deck) ----
+  if(correct){
+    DATA.streak.current++;
+    if(DATA.streak.current > DATA.streak.best) DATA.streak.best = DATA.streak.current;
+  } else {
+    DATA.streak.current = 0;
+  }
+
+  // ---- per-deck streak, for the "baralhos com maior sequência" stat ----
+  const ownerDeck = findDeck(ownerDeckId);
+  if(ownerDeck){
+    if(correct){
+      ownerDeck.streakCurrent = (ownerDeck.streakCurrent||0) + 1;
+      if(ownerDeck.streakCurrent > (ownerDeck.streakBest||0)) ownerDeck.streakBest = ownerDeck.streakCurrent;
+    } else {
+      ownerDeck.streakCurrent = 0;
+    }
+  }
+
+  // ---- boost lifecycle ----
+  if(wasBoostActive){
+    DATA.boost.cardsRemaining--;
+    if(!correct){
+      DATA.boost.wrongCount++;
+      if(DATA.boost.wrongCount >= 2){
+        DATA.boost.active = false;
+        DATA.boostStats.failCount++;
+        toast('Boost encerrado — 2 erros durante o boost.');
+      }
+    }
+    if(DATA.boost.active && DATA.boost.cardsRemaining <= 0){
+      DATA.boost.active = false;
+      DATA.boostStats.successCount++;
+      toast('Boost concluído com sucesso! +' + DATA.boostStats.pointsEarned + ' XP acumulado em boosts.');
+    }
+  } else if(correct && DATA.streak.current > 0 && DATA.streak.current % 10 === 0){
+    DATA.boost.active = true;
+    DATA.boost.cardsRemaining = 10;
+    DATA.boost.wrongCount = 0;
+    toast('BOOST ativado! Próximos 10 cartões valem 2x nos acertos.');
+  }
+  updateBoostBanner();
+  updateStreakChip();
+
+  saveData();
+  document.getElementById('sessOk').textContent = '✓ '+sessionOk;
+  document.getElementById('sessNo').textContent = '✕ '+sessionNo;
+
+  // Remove from the front of the queue; if wrong, requeue at the very end.
+  const id = studyQueue.shift();
+  if(!correct) studyQueue.push(id);
+
+  setTimeout(()=> flyAndRender(correct ? 1 : -1), 260);
+}
+function updateStreakChip(){
+  const el = document.getElementById('streakChip');
+  if(!el) return;
+  if(DATA.streak.current >= 3){
+    el.textContent = 'Sequência: ' + DATA.streak.current;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+function updateBoostBanner(){
+  const el = document.getElementById('boostBanner');
+  const fc = document.getElementById('flashcard');
+  if(!el) return;
+  if(DATA.boost.active){
+    el.textContent = '⚡ BOOST ATIVO — acertos valem 2x · ' + DATA.boost.cardsRemaining + ' cartão(ões) restante(s) · ' + (2-DATA.boost.wrongCount) + ' erro(s) de tolerância';
+    el.classList.remove('hidden');
+    if(fc) fc.classList.add('boost-active');
+  } else {
+    el.classList.add('hidden');
+    if(fc) fc.classList.remove('boost-active');
+  }
+}
+function showXpFloat(delta, boosted){
+  const el = document.getElementById('xpFloat');
+  if(!el) return;
+  el.textContent = (delta>0 ? '+' : '') + delta + ' XP' + (boosted ? ' (boost)' : '');
+  el.className = 'xp-float ' + (delta>0 ? 'xp-pos' : 'xp-neg') + ' show';
+  clearTimeout(showXpFloat._t);
+  showXpFloat._t = setTimeout(()=> el.classList.remove('show'), 850);
+}
+let queuePanelCollapsed = false;
+function toggleQueuePanelCollapse(){
+  queuePanelCollapsed = !queuePanelCollapsed;
+  document.getElementById('queuePanelList').classList.toggle('collapsed', queuePanelCollapsed);
+  document.getElementById('queuePanelToggleIcon').textContent = queuePanelCollapsed ? '▸' : '▾';
+}
+function renderQueuePanel(){
+  const list = document.getElementById('queuePanelList');
+  const countEl = document.getElementById('queuePanelCount');
+  if(!list || !countEl) return;
+  countEl.textContent = studyQueue.length;
+  if(!studyQueue.length){
+    list.innerHTML = '<div class="queue-empty">Fila vazia.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  studyQueue.forEach((cardId, idx)=>{
+    const entry = studyCardIndex[cardId];
+    if(!entry) return;
+    const card = entry.card;
+    const row = document.createElement('div');
+    row.className = 'queue-row' + (idx===0 ? ' current' : '');
+    row.onclick = ()=> jumpToCard(cardId);
+    const favStar = card.favorito ? '★ ' : '';
+    const snippet = card.pergunta.length > 42 ? card.pergunta.slice(0,42)+'…' : card.pergunta;
+    row.innerHTML = `
+      <span class="qpos">${idx+1}</span>
+      <span class="qtext">${favStar}${escapeHtml(snippet)}</span>
+      <span class="qstats"><span class="ok">✓${card.stats.acertos}</span> <span class="no">✕${card.stats.erros}</span></span>`;
+    list.appendChild(row);
+  });
+}
+function jumpToCard(cardId){
+  const idx = studyQueue.indexOf(cardId);
+  if(idx <= 0) return; // already the current card, or not found
+  studyQueue.splice(idx, 1);
+  studyQueue.unshift(cardId);
+  renderStudyCard();
+}
+function skipCard(dir){
+  // Move current card to the back of the queue without grading it.
+  if(!studyQueue.length) return;
+  const id = studyQueue.shift();
+  studyQueue.push(id);
+  flyAndRender(dir || 1);
+}
+function flyAndRender(dir){
+  const fc = document.getElementById('flashcard');
+  fc.classList.remove('dragging');
+  fc.classList.add(dir>0 ? 'fly-right' : 'fly-left');
+  setTimeout(renderStudyCard, 260);
+}
+
+/* ---- drag / swipe handling ---- */
+(function(){
+  const fc = document.getElementById('flashcard');
+  let startX=0, startY=0, curX=0, dragging=false, moved=false;
+
+  function onStart(x,y){
+    dragging = true; moved=false; startX=x; startY=y; curX=x;
+    fc.classList.add('dragging');
+  }
+  function onMove(x,y){
+    if(!dragging) return;
+    curX = x;
+    const dx = x-startX, dy = y-startY;
+    if(Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+    const rot = dx/18;
+    const flipTransform = studyFlipped ? ' rotateY(180deg)' : '';
+    fc.style.transform = `translateX(${dx}px) rotate(${rot}deg)` + flipTransform;
+  }
+  function onEnd(){
+    if(!dragging) return;
+    dragging = false;
+    fc.classList.remove('dragging');
+    const dx = curX-startX;
+    if(!moved){
+      fc.style.transform = '';
+      flipCard();
+      return;
+    }
+    if(Math.abs(dx) > 90){
+      // A swipe while the card is flipped and not yet graded defaults to "skip" (no grade change).
+      // If already graded, gradeCard already advanced the queue and this handler is inert (studyGraded true, card changed).
+      skipCard(dx>0 ? 1 : -1);
+    } else {
+      fc.style.transform = studyFlipped ? 'rotateY(180deg)' : '';
+    }
+  }
+  fc.addEventListener('touchstart', e=>{ const t=e.touches[0]; onStart(t.clientX,t.clientY); }, {passive:true});
+  fc.addEventListener('touchmove', e=>{ const t=e.touches[0]; onMove(t.clientX,t.clientY); }, {passive:true});
+  fc.addEventListener('touchend', onEnd);
+  fc.addEventListener('mousedown', e=>{ onStart(e.clientX,e.clientY); e.preventDefault(); });
+  window.addEventListener('mousemove', e=>{ if(dragging) onMove(e.clientX,e.clientY); });
+  window.addEventListener('mouseup', onEnd);
+})();
+
+/* ============================================================
+   SUMMARY
+   ============================================================ */
+function resetAllStats(){
+  if(!confirm('Isso vai zerar acertos e erros de todos os cartões, XP, nível, sequências e boosts, além do histórico de evolução por data. Continuar?')) return;
+  DATA.decks.forEach(deck=>{
+    deck.cards.forEach(c=>{
+      c.stats = { acertos:0, erros:0, ultimoResultado:null, ultimaRevisao:null, ultimoTempoRespostaSeg:null };
+    });
+    deck.streakCurrent = 0;
+    deck.streakBest = 0;
+  });
+  DATA.dailyStats = [];
+  DATA.xp = 0;
+  DATA.streak = { current:0, best:0 };
+  DATA.boost = { active:false, cardsRemaining:0, wrongCount:0 };
+  DATA.boostStats = { successCount:0, failCount:0, pointsEarned:0 };
+  saveData();
+  updateXpBadge();
+  renderSummary();
+  toast('Estatísticas e histórico zerados.');
+}
+function renderGameStats(){
+  document.getElementById('sumStreakBest').textContent = DATA.streak.best;
+  document.getElementById('sumBoostOk').textContent = DATA.boostStats.successCount;
+  document.getElementById('sumBoostFail').textContent = DATA.boostStats.failCount;
+  document.getElementById('sumBoostPoints').textContent = 'XP acumulado em boosts: ' + DATA.boostStats.pointsEarned;
+
+  const board = document.getElementById('sumStreakLeaderboard');
+  const ranked = DATA.decks.filter(d=>(d.streakBest||0) > 0).sort((a,b)=>(b.streakBest||0)-(a.streakBest||0)).slice(0,5);
+  if(!ranked.length){ board.innerHTML = ''; return; }
+  let html = '<div class="tough-list"><div class="th">Baralhos com maior sequência</div>';
+  ranked.forEach(d=>{
+    html += `<div class="ti"><span>${escapeHtml(d.name)}</span><span class="cnt" style="color:var(--gold);">${d.streakBest}</span></div>`;
+  });
+  html += '</div>';
+  board.innerHTML = html;
+}
+function renderSummary(){
+  const info = getLevelInfo(DATA.xp);
+  document.getElementById('sumLevelNum').textContent = 'Nível ' + info.level;
+  document.getElementById('sumLevelTier').textContent = getTierName(info.level);
+  document.getElementById('sumXpTotal').textContent = DATA.xp + ' XP';
+  document.getElementById('sumXpBar').style.width = Math.round((info.into/info.nextNeed)*100) + '%';
+  document.getElementById('sumXpToNext').textContent = info.into + '/' + info.nextNeed + ' XP para o próximo nível';
+  updateXpBadge();
+
+  renderGameStats();
+
+  document.getElementById('sumDecks').textContent = DATA.decks.length;
+  const totalCards = DATA.decks.reduce((s,d)=>s+d.cards.length,0);
+  document.getElementById('sumCards').textContent = totalCards;
+
+  let ok=0, tot=0;
+  const barsWrap = document.getElementById('summaryBars');
+  barsWrap.innerHTML = '';
+
+  const decksWithData = DATA.decks.filter(d=>d.cards.some(c=>c.stats.acertos+c.stats.erros>0));
+
+  DATA.decks.forEach(deck=>{
+    let dOk=0, dTot=0;
+    deck.cards.forEach(c=>{ dOk += c.stats.acertos; dTot += c.stats.acertos+c.stats.erros; ok+=c.stats.acertos; tot+=c.stats.acertos+c.stats.erros; });
+    if(dTot === 0) return;
+    const pct = Math.round((dOk/dTot)*100);
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-head"><span class="name">${escapeHtml(deck.name)}</span><span class="pct">${pct}% · ${dTot} revisões</span></div>
+      <div class="bar-track"><div class="bar-ok" style="width:${pct}%"></div><div class="bar-no" style="width:${100-pct}%"></div></div>`;
+    barsWrap.appendChild(row);
+  });
+
+  document.getElementById('sumAcc').textContent = tot ? Math.round((ok/tot)*100)+'%' : '—';
+  document.getElementById('summaryEmpty').classList.toggle('hidden', decksWithData.length>0);
+}
+
+renderDeckList();
+updateXpBadge();
+ensureDailyChallenge();
+</script>
+</body>
+</html>
